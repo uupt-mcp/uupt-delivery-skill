@@ -6,6 +6,7 @@ Skill 让 AI 助手学会新技能。通过安装本 Skill，AI 助手可以获�
 
 | 能力 | 说明 | 适用场景 |
 |------|------|---------|
+| 手机号注册 | 首次使用时通过短信验证自动获取授权 | 首次使用，自动触发 |
 | 订单询价 | 计算从起始地址到目的地址的配送费用 | 用户想知道配送价格 |
 | 创建订单 | 发起配送订单，支持余额支付和支付宝支付 | 用户确认要发单配送 |
 | 查询订单 | 获取订单的当前状态和详细信息 | 用户想了解订单进度 |
@@ -21,185 +22,13 @@ Skill 让 AI 助手学会新技能。通过安装本 Skill，AI 助手可以获�
 | Node.js | `npm install` | `scripts/*.js` 和 `index.js` |
 | Python | `pip install -r requirements.txt` | `uupt_delivery.py` |
 
-## 场景一：订单询价
+## 首次使用
 
-用户想知道配送费用时使用，只计价不下单。
+**无需手动配置任何凭证。** 首次运行任何功能时会自动检测是否需要注册，如果未注册会输出 `[REGISTRATION_REQUIRED]` 提示，AI 助手会自动引导你通过手机号短信验证完成注册。
 
-**触发示例：**
-- "从A地址送到B地址多少钱"
-- "帮我算下配送费"
-- "跑腿费多少"
+注册完成后 openId 自动保存到本地配置文件，后续使用无需重复操作。
 
-**使用方法：**
-
-```bash
-# Node.js 版本
-node scripts/order-price.js --fromAddress="郑州市金水区农业路经三路交叉口" --toAddress="郑州市二七区德化街100号" --cityName="郑州市"
-
-# Python 版本
-python uupt_delivery.py price --from-address="郑州市金水区农业路经三路交叉口" --to-address="郑州市二七区德化街100号" --city="郑州市"
-```
-
-**参数说明：**
-
-| 参数 (JS) | 参数 (Python) | 说明 | 必填 |
-|-----------|--------------|------|------|
-| `--fromAddress` | `--from-address` | 起始地址（完整地址） | 是 |
-| `--toAddress` | `--to-address` | 目的地址（完整地址） | 是 |
-| `--cityName` | `--city` | 城市名称（需要带"市"字） | 否 |
-
-**返回结果：** 包含 `priceToken` 和价格信息，价格单位为分，需要格式化为元展示给用户。
-
-## 场景二：创建订单（发单）
-
-用户明确表示要发单时，询价后直接创建订单。
-
-**触发示例：**
-- "帮我发个单"
-- "我要寄东西"
-- "从A送到B，收件人电话xxx"
-
-**执行流程：**
-
-1. 获取必要信息（起始地址、目的地址、收件人电话）
-2. 调用询价接口获取 `priceToken`
-3. 使用 `priceToken` 创建订单
-4. 根据余额情况处理返回结果
-
-**使用方法：**
-
-```bash
-# Step 1: 先询价获取 priceToken
-node scripts/order-price.js --fromAddress="起始地址" --toAddress="目的地址"
-
-# Step 2: 创建订单
-# Node.js 版本
-node scripts/create-order.js --priceToken="xxx" --receiverPhone="13800138000"
-
-# Python 版本
-python uupt_delivery.py create --price-token="xxx" --receiver-phone="13800138000"
-```
-
-**返回结果处理：**
-
-| 情况 | 标识 | 处理方式 |
-|------|------|---------|
-| 余额充足 | 正常返回 `order_code` | 直接告知用户订单创建成功 |
-| 余额不足 | 返回 `orderUrl` 或输出 `[PAYMENT_REQUIRED]` | 引导用户点击支付链接完成支付 |
-
-## 场景三：查询订单详情
-
-查看订单的当前状态和详细信息。
-
-**触发示例：**
-- "查看订单状态"
-- "订单到哪了"
-- "我的订单怎么样了"
-
-**使用方法：**
-
-```bash
-# Node.js 版本
-node scripts/order-detail.js --orderCode="UU123456789"
-
-# Python 版本
-python uupt_delivery.py detail --order-code="UU123456789"
-```
-
-## 场景四：取消订单
-
-取消未完成的配送订单。
-
-**触发示例：**
-- "取消这个订单"
-- "不想发了"
-- "订单不要了"
-
-**使用方法：**
-
-```bash
-# Node.js 版本
-node scripts/cancel-order.js --orderCode="UU123456789" --reason="用户改变主意"
-
-# Python 版本
-python uupt_delivery.py cancel --order-code="UU123456789" --reason="用户改变主意"
-```
-
-## 场景五：跑男实时追踪
-
-查询配送骑手的实时位置和状态。
-
-**触发示例：**
-- "骑手在哪"
-- "跑男到哪了"
-- "配送进度"
-
-**使用方法：**
-
-```bash
-# Node.js 版本
-node scripts/driver-track.js --orderCode="UU123456789"
-
-# Python 版本
-python uupt_delivery.py track --order-code="UU123456789"
-```
-
-## 前置配置
-
-### 环境要求
-
-- **Node.js 版本：** Node.js 环境 + axios 依赖
-- **Python 版本：** Python 3 环境 + requests 依赖
-
-### 必需配置
-
-| 配置项 | 环境变量 | 说明 |
-|--------|---------|------|
-| APP_ID | `UUPT_APP_ID` | UU跑腿开放平台应用ID |
-| APP_SECRET | `UUPT_APP_SECRET` | UU跑腿开放平台应用密钥 |
-| OPEN_ID | `UUPT_OPEN_ID` | UU跑腿开放平台商户ID |
-| API_URL | `UUPT_API_URL` | API地址（可选，默认生产环境） |
-
-### Key 获取方式
-
-1. 访问 [UU跑腿开放平台](https://open.uupt.com) 注册账号
-2. 创建应用并获取 APP_ID、APP_SECRET
-3. 获取商户 OPEN_ID
-
-### 配置方式（优先级从高到低）
-
-**方式一：环境变量**
-
-```bash
-export UUPT_APP_ID=your_app_id
-export UUPT_APP_SECRET=your_app_secret
-export UUPT_OPEN_ID=your_open_id
-export UUPT_API_URL=https://api-open.uupt.com/openapi/v3/  # 可选
-```
-
-**方式二：配置文件**
-
-复制 `config.example.json` 为 `config.json` 并填写配置：
-
-```json
-{
-  "appId": "your_app_id",
-  "appSecret": "your_app_secret",
-  "openId": "your_open_id",
-  "apiUrl": "https://api-open.uupt.com/openapi/v3/"
-}
-```
-
-**方式三：首次运行自动提示**
-
-首次运行脚本时会自动提示输入并保存到配置文件。
-
-### API 环境
-
-| 环境 | URL |
-|------|-----|
-| 生产环境 | `https://api-open.uupt.com/openapi/v3/` |
-| 测试环境 | `http://api-open.test.uupt.com/openapi/v3/` |
+高级用户也可手动设置环境变量 `UUPT_OPEN_ID` 跳过注册流程。
 
 ## 快速开始
 
@@ -213,81 +42,71 @@ npm install
 pip install -r requirements.txt
 ```
 
-### 代码中使用
+### 注册（首次使用）
 
-**Node.js：**
+```bash
+# Step 1: 发送验证码
+node scripts/register.js --mobile="13800138000"
+# 或 Python: python uupt_delivery.py register --mobile="13800138000"
 
-```javascript
-const { orderPrice, createOrder, orderDetail, cancelOrder, driverTrack } = require('./index');
-
-// 订单询价
-const priceResult = await orderPrice({
-  fromAddress: '郑州市金水区农业路经三路交叉口',
-  toAddress: '郑州市二七区德化街100号',
-  cityName: '郑州市'
-});
-
-// 创建订单
-const orderResult = await createOrder({
-  priceToken: priceResult.data.priceToken,
-  receiverPhone: '13800138000'
-});
-
-// 检查是否需要支付
-if (orderResult.data.orderUrl) {
-  console.log('需要支付，打开链接:', orderResult.data.orderUrl);
-}
+# Step 2: 输入验证码完成授权
+node scripts/register.js --mobile="13800138000" --smsCode="123456"
+# 或 Python: python uupt_delivery.py register --mobile="13800138000" --sms-code="123456"
 ```
 
-**Python：**
+### 使用示例
 
-```python
-from uupt_delivery import order_price, create_order, order_detail
-
+```bash
 # 订单询价
-price_result = order_price(
-    from_address='郑州市金水区农业路经三路交叉口',
-    to_address='郑州市二七区德化街100号',
-    city_name='郑州市'
-)
+node scripts/order-price.js --fromAddress="郑州市金水区农业路经三路交叉口" --toAddress="郑州市二七区德化街100号"
 
 # 创建订单
-order_result = create_order(
-    price_token=price_result['data']['priceToken'],
-    receiver_phone='13800138000'
-)
+node scripts/create-order.js --priceToken="xxx" --receiverPhone="13800138000"
+
+# 查询订单
+node scripts/order-detail.js --orderCode="UU123456789"
+
+# 取消订单
+node scripts/cancel-order.js --orderCode="UU123456789" --reason="用户改变主意"
+
+# 跑男追踪
+node scripts/driver-track.js --orderCode="UU123456789"
 ```
 
-## 完整交互流程示例
+## 配置管理
 
+配置分为两层，无需手动编辑：
+
+| 配置文件 | 内容 | 说明 |
+|---------|------|------|
+| `defaults.json` | appId、appSecret、apiUrl | 内置应用凭证，随 Skill 分发，**请勿修改** |
+| `config.json` | openId | 用户级配置，注册成功后自动生成 |
+
+配置优先级（从高到低）：环境变量 > config.json > defaults.json
+
+### 可选环境变量
+
+```bash
+export UUPT_OPEN_ID=your_open_id        # 跳过注册流程
+export UUPT_API_URL=https://api-open.uupt.com/openapi/v3/  # 可选
 ```
-用户：帮我从金水区农业路送到二七区德化街，收件人电话 13800138000
 
-Agent：
-1. 执行询价 → 获取 priceToken 和价格
-2. 立即执行创建订单（不询问确认）
-3. 如果余额充足 → 返回订单创建成功信息
-4. 如果余额不足 → 输出支付链接，引导用户支付
+### API 环境
 
---- 用户去支付 ---
-
-用户：我支付完了
-
-Agent：
-1. 询问确认：请问是否已完成支付？
-2. 用户确认后 → 查询订单详情
-3. 展示订单状态和骑手信息
-```
+| 环境 | URL |
+|------|-----|
+| 生产环境 | `https://api-open.uupt.com/openapi/v3/` |
+| 测试环境 | `http://api-open.test.uupt.com/openapi/v3/` |
 
 ## 注意事项
 
-- **认证必须配置**：所有接口都需要 APP_ID、APP_SECRET、OPEN_ID
+- **首次使用**：需通过手机号验证获取授权，之后无需重复操作
 - **询价有效期**：priceToken 有时效性，建议获取后尽快创建订单
 - **地址完整性**：地址信息越完整，配送越准确
 - **城市默认值**：如未指定城市，默认使用"郑州市"
 - **价格单位**：API 返回的价格单位是分，展示时需除以 100 转换为元
-- **余额不足**：当返回 `orderUrl` 时，需引导用户通过支付宝支付
-- 请妥善保管你的 APP_SECRET，不要分享给他人
+- **余额不足**：当返回 `[PAYMENT_REQUIRED]` 时，需通过支付宝支付
+- **配置文件**：`defaults.json` 为内置凭证，请勿修改或删除
 
 ## 相关链接
 

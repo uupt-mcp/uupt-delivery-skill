@@ -366,19 +366,42 @@ def format_create_result(result: dict) -> None:
     
     if result.get("data") and result["data"].get("order_code"):
         data = result["data"]
-        # 检查是否需要支付宝支付（余额不足）
+        # 检查是否需要支付（余额不足）
         if data.get("orderUrl"):
-            print("\n[警告] 账户余额不足，需要通过支付宝支付")
-            print(f"   订单编号: {data['order_code']}")
-            print(f"   支付链接: {data['orderUrl']}")
-            print("\n[支付] 请确认是否立即支付？")
-            print("   - 如需支付，请打开上方支付链接完成支付")
-            print("   - 支付完成后，订单将自动生效")
+            payment_url = data["orderUrl"]
+            order_code = data["order_code"]
             
-            # 输出特殊标记，供 Agent 识别
-            print("\n[PAYMENT_REQUIRED]")
-            print(f"ORDER_CODE={data['order_code']}")
-            print(f"PAYMENT_URL={data['orderUrl']}")
+            # 检测是否为微信支付 URL
+            is_wechat_pay = payment_url.startswith("weixin://")
+            
+            print("\n[警告] 账户余额不足，需要完成支付")
+            print(f"   订单编号: {order_code}")
+            
+            if is_wechat_pay:
+                # 微信支付：生成在线二维码 URL
+                from urllib.parse import quote
+                qrcode_url = f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={quote(payment_url, safe='')}"
+                
+                print("\n[支付] 微信支付")
+                print("   请使用微信扫码支付：")
+                
+                # 输出特殊标记，供 Agent 识别
+                print("\n[PAYMENT_REQUIRED]")
+                print("[WECHAT_PAY_QRCODE]")
+                print(f"ORDER_CODE={order_code}")
+                print(f"PAYMENT_URL={payment_url}")
+                print(f"QRCODE_URL={qrcode_url}")
+            else:
+                # 非微信支付（如支付宝）：直接输出链接
+                print("\n[支付] 请点击以下链接完成支付：")
+                print(f"   支付链接: {payment_url}")
+                
+                # 输出特殊标记，供 Agent 识别
+                print("\n[PAYMENT_REQUIRED]")
+                print(f"ORDER_CODE={order_code}")
+                print(f"PAYMENT_URL={payment_url}")
+            
+            print("\n   支付完成后，订单将自动生效")
         else:
             print("\n[成功] 订单创建成功!")
             print(f"   订单编号: {data['order_code']}")

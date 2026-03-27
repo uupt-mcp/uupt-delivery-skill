@@ -54,19 +54,42 @@ async function main() {
       console.log(JSON.stringify(result, null, 2));
       
       if (result.data && result.data.order_code) {
-        // 检查是否需要支付宝支付（余额不足）
+        // 检查是否需要支付（余额不足）
         if (result.data.orderUrl) {
-          console.log('\n⚠️  账户余额不足，需要通过支付宝支付');
-          console.log(`   订单编号: ${result.data.order_code}`);
-          console.log(`   支付链接: ${result.data.orderUrl}`);
-          console.log('\n💳 请确认是否立即支付？');
-          console.log('   - 如需支付，请打开上方支付链接完成支付');
-          console.log('   - 支付完成后，订单将自动生效');
+          const paymentUrl = result.data.orderUrl;
+          const orderCode = result.data.order_code;
           
-          // 输出特殊标记，供 Agent 识别
-          console.log('\n[PAYMENT_REQUIRED]');
-          console.log(`ORDER_CODE=${result.data.order_code}`);
-          console.log(`PAYMENT_URL=${result.data.orderUrl}`);
+          // 检测是否为微信支付 URL
+          const isWechatPay = paymentUrl.startsWith('weixin://');
+          
+          console.log('\n⚠️  账户余额不足，需要完成支付');
+          console.log(`   订单编号: ${orderCode}`);
+          
+          if (isWechatPay) {
+            // 微信支付：生成在线二维码 URL
+            const qrcodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(paymentUrl)}`;
+            
+            console.log('\n💳 微信支付');
+            console.log('   请使用微信扫码支付：');
+            
+            // 输出特殊标记，供 Agent 识别
+            console.log('\n[PAYMENT_REQUIRED]');
+            console.log('[WECHAT_PAY_QRCODE]');
+            console.log(`ORDER_CODE=${orderCode}`);
+            console.log(`PAYMENT_URL=${paymentUrl}`);
+            console.log(`QRCODE_URL=${qrcodeUrl}`);
+          } else {
+            // 非微信支付（如支付宝）：直接输出链接
+            console.log('\n💳 请点击以下链接完成支付：');
+            console.log(`   支付链接: ${paymentUrl}`);
+            
+            // 输出特殊标记，供 Agent 识别
+            console.log('\n[PAYMENT_REQUIRED]');
+            console.log(`ORDER_CODE=${orderCode}`);
+            console.log(`PAYMENT_URL=${paymentUrl}`);
+          }
+          
+          console.log('\n   支付完成后，订单将自动生效');
         } else {
           console.log('\n✅ 订单创建成功!');
           console.log(`   订单编号: ${result.data.order_code}`);

@@ -281,20 +281,29 @@ python uupt_delivery.py create --price-token="xxx" --receiver-phone="13800138000
 
 1. **展示支付二维码给用户**：
 
+从脚本输出中提取 `QRCODE_URL=` 后面的完整 URL。
+
+**回复时必须同时提供以下两种方式，确保用户能看到二维码**：
+
 ```
 账户余额不足，需要完成微信支付
 
 订单编号：{order_code}
-配送费用：{price/100} 元
+配送费用：XX.XX 元
 
-请使用微信扫描下方二维码完成支付：
+请使用微信扫描二维码完成支付：
 
-![{QRCODE_URL}]({QRCODE_URL})
+![WeChat Pay QR Code]({QRCODE_URL})
+
+如果二维码未显示，请点击此链接查看：{QRCODE_URL}
 
 支付完成后请回来告诉我。
 ```
 
-注意：使用 Markdown 图片语法 `![...]({QRCODE_URL})` 展示二维码图片。
+**重要说明**：
+- 使用 Markdown 图片语法 `![WeChat Pay QR Code]({QRCODE_URL})` 展示图片
+- **同时提供二维码图片的直接链接**，作为备用方案
+- 确保用户即使图片无法内嵌显示，也可以点击链接查看二维码
 
 2. **等待用户返回**：用户支付后会回来
 

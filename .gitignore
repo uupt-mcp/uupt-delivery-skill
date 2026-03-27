@@ -1,0 +1,8 @@
+# IDE
+.idea/
+
+# Dependencies
+node_modules/
+
+# Config
+config.json

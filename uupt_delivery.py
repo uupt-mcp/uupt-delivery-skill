@@ -23,7 +23,9 @@ import json
 import hashlib
 import time
 import argparse
+import tempfile
 from pathlib import Path
+from urllib.parse import quote
 
 try:
     import requests
@@ -378,19 +380,43 @@ def format_create_result(result: dict) -> None:
             print(f"   订单编号: {order_code}")
             
             if is_wechat_pay:
-                # 微信支付：生成在线二维码 URL
-                from urllib.parse import quote
+                # 微信支付：下载二维码图片到本地
                 qrcode_url = f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={quote(payment_url, safe='')}"
                 
                 print("\n[支付] 微信支付")
-                print("   请使用微信扫码支付：")
+                print("   正在生成支付二维码...")
                 
-                # 输出特殊标记，供 Agent 识别
-                print("\n[PAYMENT_REQUIRED]")
-                print("[WECHAT_PAY_QRCODE]")
-                print(f"ORDER_CODE={order_code}")
-                print(f"PAYMENT_URL={payment_url}")
-                print(f"QRCODE_URL={qrcode_url}")
+                try:
+                    # 下载二维码图片到本地临时目录
+                    temp_dir = tempfile.gettempdir()
+                    qr_file_name = f"wechat_pay_{order_code}.png"
+                    qr_file_path = os.path.join(temp_dir, qr_file_name)
+                    
+                    response = requests.get(qrcode_url, timeout=10)
+                    response.raise_for_status()
+                    
+                    with open(qr_file_path, 'wb') as f:
+                        f.write(response.content)
+                    
+                    print("   二维码已生成！")
+                    print("   请使用微信扫码支付")
+                    
+                    # 输出特殊标记，供 Agent 识别
+                    print("\n[PAYMENT_REQUIRED]")
+                    print("[WECHAT_PAY_QRCODE]")
+                    print(f"ORDER_CODE={order_code}")
+                    print(f"PAYMENT_URL={payment_url}")
+                    print(f"QRCODE_FILE={qr_file_path}")
+                    print(f"QRCODE_URL={qrcode_url}")
+                except Exception as e:
+                    print(f"   下载二维码失败: {e}")
+                    print(f"   请手动访问二维码链接: {qrcode_url}")
+                    
+                    print("\n[PAYMENT_REQUIRED]")
+                    print("[WECHAT_PAY_QRCODE]")
+                    print(f"ORDER_CODE={order_code}")
+                    print(f"PAYMENT_URL={payment_url}")
+                    print(f"QRCODE_URL={qrcode_url}")
             else:
                 # 非微信支付（如支付宝）：直接输出链接
                 print("\n[支付] 请点击以下链接完成支付：")

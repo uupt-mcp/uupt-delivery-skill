@@ -6,6 +6,10 @@
  */
 
 const { createOrder, formatPrice } = require('../index');
+const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
 
 // 解析命令行参数
 function parseArgs() {
@@ -66,18 +70,41 @@ async function main() {
           console.log(`   订单编号: ${orderCode}`);
           
           if (isWechatPay) {
-            // 微信支付：生成在线二维码 URL
+            // 微信支付：下载二维码图片到本地
             const qrcodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(paymentUrl)}`;
             
             console.log('\n💳 微信支付');
-            console.log('   请使用微信扫码支付：');
+            console.log('   正在生成支付二维码...');
             
-            // 输出特殊标记，供 Agent 识别
-            console.log('\n[PAYMENT_REQUIRED]');
-            console.log('[WECHAT_PAY_QRCODE]');
-            console.log(`ORDER_CODE=${orderCode}`);
-            console.log(`PAYMENT_URL=${paymentUrl}`);
-            console.log(`QRCODE_URL=${qrcodeUrl}`);
+            try {
+              // 下载二维码图片到本地临时目录
+              const tempDir = os.tmpdir();
+              const qrFileName = `wechat_pay_${orderCode}.png`;
+              const qrFilePath = path.join(tempDir, qrFileName);
+              
+              const response = await axios.get(qrcodeUrl, { responseType: 'arraybuffer', timeout: 10000 });
+              fs.writeFileSync(qrFilePath, response.data);
+              
+              console.log('   二维码已生成！');
+              console.log(`   请使用微信扫码支付`);
+              
+              // 输出特殊标记，供 Agent 识别
+              console.log('\n[PAYMENT_REQUIRED]');
+              console.log('[WECHAT_PAY_QRCODE]');
+              console.log(`ORDER_CODE=${orderCode}`);
+              console.log(`PAYMENT_URL=${paymentUrl}`);
+              console.log(`QRCODE_FILE=${qrFilePath}`);
+              console.log(`QRCODE_URL=${qrcodeUrl}`);
+            } catch (downloadErr) {
+              console.error('   下载二维码失败:', downloadErr.message);
+              console.log(`   请手动访问二维码链接: ${qrcodeUrl}`);
+              
+              console.log('\n[PAYMENT_REQUIRED]');
+              console.log('[WECHAT_PAY_QRCODE]');
+              console.log(`ORDER_CODE=${orderCode}`);
+              console.log(`PAYMENT_URL=${paymentUrl}`);
+              console.log(`QRCODE_URL=${qrcodeUrl}`);
+            }
           } else {
             // 非微信支付（如支付宝）：直接输出链接
             console.log('\n💳 请点击以下链接完成支付：');

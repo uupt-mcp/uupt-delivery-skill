@@ -275,15 +275,18 @@ python uupt_delivery.py create --price-token="xxx" --receiver-phone="13800138000
 **识别标记**：脚本输出包含 `[PAYMENT_REQUIRED]` 和 `[WECHAT_PAY_QRCODE]` 时表示需要微信支付。
 
 **关键输出**：
-- `QRCODE_URL=https://api.qrserver.com/v1/create-qr-code/...` — 二维码图片地址
+- `QRCODE_FILE=/tmp/wechat_pay_xxx.png` — 本地二维码图片文件路径
+- `QRCODE_URL=https://api.qrserver.com/v1/create-qr-code/?...` — 在线二维码链接（兆底方案）
 
 **处理流程：**
 
 1. **展示支付二维码给用户**：
 
-从脚本输出中提取 `QRCODE_URL=` 后面的完整 URL。
+从脚本输出中提取：
+- `QRCODE_FILE=` 后的本地文件路径
+- `QRCODE_URL=` 后的在线链接
 
-**回复时必须同时提供以下两种方式，确保用户能看到二维码**：
+**回复模板（同时提供两种方式）**：
 
 ```
 账户余额不足，需要完成微信支付
@@ -293,17 +296,18 @@ python uupt_delivery.py create --price-token="xxx" --receiver-phone="13800138000
 
 请使用微信扫描二维码完成支付：
 
-![WeChat Pay QR Code]({QRCODE_URL})
+[微信支付二维码]({QRCODE_FILE})
 
-如果二维码未显示，请点击此链接查看：{QRCODE_URL}
+📱 如果二维码未显示，请在手机上点击此链接查看：
+{QRCODE_URL}
 
 支付完成后请回来告诉我。
 ```
 
 **重要说明**：
-- 使用 Markdown 图片语法 `![WeChat Pay QR Code]({QRCODE_URL})` 展示图片
-- **同时提供二维码图片的直接链接**，作为备用方案
-- 确保用户即使图片无法内嵌显示，也可以点击链接查看二维码
+- 使用 Markdown 图片语法引用本地文件：`[微信支付二维码]({QRCODE_FILE})`
+- **必须同时提供在线链接作为兆底方案**，用户可在手机上点击链接查看二维码图片
+- `{QRCODE_URL}` 格式如：`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=weixin://wxpay/bizpayurl?pr=xxx`
 
 2. **等待用户返回**：用户支付后会回来
 

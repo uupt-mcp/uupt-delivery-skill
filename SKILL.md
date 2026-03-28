@@ -286,7 +286,7 @@ python uupt_delivery.py create --price-token="xxx" --receiver-phone="13800138000
 - `QRCODE_FILE=` 后的本地文件路径
 - `QRCODE_URL=` 后的在线链接
 
-**回复模板（同时提供两种方式）**：
+**回复模板（附件 + 兜底链接）**：
 
 ```
 账户余额不足，需要完成微信支付
@@ -294,19 +294,20 @@ python uupt_delivery.py create --price-token="xxx" --receiver-phone="13800138000
 订单编号：{order_code}
 配送费用：XX.XX 元
 
-请使用微信扫描二维码完成支付：
+请保存下方二维码图片，用微信扫一扫完成支付：
 
-[微信支付二维码]({QRCODE_FILE})
+[附件：微信支付二维码]({QRCODE_FILE})
 
-📱 如果二维码未显示，请在手机上点击此链接查看：
+📱 **如果未收到二维码图片**，请点击下方链接保存图片后用微信扫码：
 {QRCODE_URL}
 
 支付完成后请回来告诉我。
 ```
 
 **重要说明**：
-- 使用 Markdown 图片语法引用本地文件：`[微信支付二维码]({QRCODE_FILE})`
-- **必须同时提供在线链接作为兆底方案**，用户可在手机上点击链接查看二维码图片
+- **必须以附件形式发送二维码图片文件**：使用 `[附件：微信支付二维码]({QRCODE_FILE})` 格式，将本地图片作为附件发送给用户
+- 用户在手机聊天软件（飞书、钉钉、微信等）中可直接接收并保存附件图片
+- **兜底方案**：同时提供在线链接 `{QRCODE_URL}`，用户可点击链接在浏览器中打开并保存二维码图片，再用微信扫码支付
 - `{QRCODE_URL}` 格式如：`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=weixin://wxpay/bizpayurl?pr=xxx`
 
 2. **等待用户返回**：用户支付后会回来
@@ -588,7 +589,7 @@ detail_result = order_detail(
 - **城市默认值**：如未指定城市，默认使用"郑州市"
 - **价格单位**：API 返回的价格单位是分，展示时需除以 100 转换为元
 - **订单状态**：创建订单后请关注订单状态变化
-- **余额不足**：当返回 `[PAYMENT_REQUIRED]` 和 `[WECHAT_PAY_QRCODE]` 时，需展示微信支付二维码引导用户扫码支付
+- **余额不足**：当返回 `[PAYMENT_REQUIRED]` 和 `[WECHAT_PAY_QRCODE]` 时，需以附件形式发送微信支付二维码图片并提供兜底链接引导用户扫码支付
 - **配置文件**：`defaults.json` 为内置凭证，请勿修改或删除
 
 ## 相关链接

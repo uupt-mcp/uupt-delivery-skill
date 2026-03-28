@@ -1,5 +1,7 @@
 # UU跑腿同城配送服务 Skill
 
+[![Version](https://img.shields.io/badge/version-1.0.5-blue.svg)](./SKILL.md)
+
 Skill 让 AI 助手学会新技能。通过安装本 Skill，AI 助手可以获得同城即时配送的专业能力，在对话中自动识别用户的配送需求并调用对应的接口来完成任务。
 
 ## 核心能力
@@ -8,7 +10,7 @@ Skill 让 AI 助手学会新技能。通过安装本 Skill，AI 助手可以获�
 |------|------|---------|
 | 手机号注册 | 首次使用时通过短信验证自动获取授权 | 首次使用，自动触发 |
 | 订单询价 | 计算从起始地址到目的地址的配送费用 | 用户想知道配送价格 |
-| 创建订单 | 发起配送订单，支持余额支付和支付宝支付 | 用户确认要发单配送 |
+| 创建订单 | 发起配送订单，支持余额支付和微信支付 | 用户确认要发单配送 |
 | 查询订单 | 获取订单的当前状态和详细信息 | 用户想了解订单进度 |
 | 取消订单 | 取消未完成的配送订单 | 用户不想继续配送 |
 | 跑男追踪 | 实时查询配送骑手的位置和状态 | 用户想知道骑手在哪 |
@@ -24,11 +26,41 @@ Skill 让 AI 助手学会新技能。通过安装本 Skill，AI 助手可以获�
 
 ## 首次使用
 
+本 Skill 支持两种认证方式：
+
+### 方式一：快速体验模式（推荐）
+
 **无需手动配置任何凭证。** 首次运行任何功能时会自动检测是否需要注册，如果未注册会输出 `[REGISTRATION_REQUIRED]` 提示，AI 助手会自动引导你通过手机号短信验证完成注册。
 
 注册完成后 openId 自动保存到本地配置文件，后续使用无需重复操作。
 
-高级用户也可手动设置环境变量 `UUPT_OPEN_ID` 跳过注册流程。
+**注册流程：**
+1. 执行任意功能脚本，检测到未注册时输出 `[REGISTRATION_REQUIRED]`
+2. 输入手机号，系统发送短信验证码
+3. 如遇 `[IMAGE_CAPTCHA_REQUIRED]`，需识别图片验证码后重试
+4. 输入短信验证码完成授权
+5. 注册成功后自动继续执行原功能
+
+### 方式二：开发者模式
+
+如果你已拥有 UU跑腿开放平台的凭证（appId、appSecret、openId），可通过以下方式配置：
+
+**环境变量方式：**
+```bash
+export UUPT_APP_ID=你的appId
+export UUPT_APP_SECRET=你的appSecret
+export UUPT_OPEN_ID=你的openId
+```
+
+**配置文件方式：**
+创建 `config.json` 文件：
+```json
+{
+  "appId": "你的appId",
+  "appSecret": "你的appSecret",
+  "openId": "你的openId"
+}
+```
 
 ## 快速开始
 
@@ -80,16 +112,18 @@ node scripts/driver-track.js --orderCode="UU123456789"
 | 配置文件 | 内容 | 说明 |
 |---------|------|------|
 | `defaults.json` | appId、appSecret、apiUrl | 内置应用凭证，随 Skill 分发，**请勿修改** |
-| `config.json` | openId | 用户级配置，注册成功后自动生成 |
+| `config.json` | openId（或完整凭证） | 用户级配置，注册成功后自动生成 |
 
 配置优先级（从高到低）：环境变量 > config.json > defaults.json
 
-### 可选环境变量
+### 环境变量
 
-```bash
-export UUPT_OPEN_ID=your_open_id        # 跳过注册流程
-export UUPT_API_URL=https://api-open.uupt.com/openapi/v3/  # 可选
-```
+| 变量名 | 说明 | 必填 |
+|--------|------|------|
+| `UUPT_APP_ID` | 应用 ID | 开发者模式必填 |
+| `UUPT_APP_SECRET` | 应用密钥 | 开发者模式必填 |
+| `UUPT_OPEN_ID` | 用户唯一标识 | 是 |
+| `UUPT_API_URL` | API 地址 | 否，默认生产环境 |
 
 ### API 环境
 
@@ -101,11 +135,13 @@ export UUPT_API_URL=https://api-open.uupt.com/openapi/v3/  # 可选
 ## 注意事项
 
 - **首次使用**：需通过手机号验证获取授权，之后无需重复操作
+- **图片验证码**：如发送短信时返回 `[IMAGE_CAPTCHA_REQUIRED]`，需展示 base64 图片让用户识别后重试
+- **注册重试**：授权失败时自动重试，最多 3 次（无需重新输入手机号）
 - **询价有效期**：priceToken 有时效性，建议获取后尽快创建订单
 - **地址完整性**：地址信息越完整，配送越准确
 - **城市默认值**：如未指定城市，默认使用"郑州市"
 - **价格单位**：API 返回的价格单位是分，展示时需除以 100 转换为元
-- **余额不足**：当返回 `[PAYMENT_REQUIRED]` 时，需通过支付宝支付
+- **余额不足**：当返回 `[PAYMENT_REQUIRED]` 和 `[WECHAT_PAY_QRCODE]` 时，需以附件形式发送微信支付二维码图片，同时提供在线链接作为兜底方案
 - **配置文件**：`defaults.json` 为内置凭证，请勿修改或删除
 
 ## 相关链接

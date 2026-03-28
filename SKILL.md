@@ -2,7 +2,7 @@
 name: uupt-delivery-skill
 description: >-
   UU跑腿同城配送服务。支持订单询价、发单下单、查询订单、取消订单、骑手实时追踪。当用户表达任何与"送"、"取"、"寄"、"跑腿"、"发单"、"配送"相关的配送需求时使用此skill。
-version: 1.3.0
+version: 1.0.5
 metadata:
   openclaw:
     requires:
@@ -48,13 +48,41 @@ Agent 会自动检测可用环境并选择合适的版本执行。
 
 ## 首次使用
 
-**无需手动配置任何凭证。** 首次使用时，执行任何功能脚本会自动检测是否需要注册：
+本 skill 支持两种认证方式，可根据实际情况选择：
+
+### 方式一：开发者模式（已有凭证）
+
+如果你已经拥有自己的 `appId`、`appSecret`、`openId`，在 `config.json` 中配置：
+
+```json
+{
+  "appId": "你的appId",
+  "appSecret": "你的appSecret",
+  "openId": "你的openId"
+}
+```
+
+或通过环境变量设置：
+```bash
+export UUPT_APP_ID=你的appId
+export UUPT_APP_SECRET=你的appSecret
+export UUPT_OPEN_ID=你的openId
+```
+
+配置完成后即可直接使用所有功能，无需注册流程。
+
+### 方式二：快速体验模式（手机号注册）
+
+**首次安装时 config.json 文件不存在，这是正常的。** 执行任何功能脚本会自动检测是否需要注册：
 
 - 如果输出中包含 `[REGISTRATION_REQUIRED]`，说明需要先完成手机号验证
 - Agent 应自动进入**场景零（首次注册）**引导用户完成注册
-- 注册完成后，openId 自动保存到本地配置文件，后续使用无需重复注册
+- 注册完成后，系统自动创建 config.json 并保存 openId，后续使用无需重复注册
+- 此模式使用内置的默认 appId/appSecret
 
-高级用户也可手动设置环境变量 `UUPT_OPEN_ID` 跳过注册流程。
+### 认证状态检查
+
+当 `appId`、`appSecret`、`openId` 三个值都已配置（无论通过哪种方式），后续使用将不再要求用户提供凭证。
 
 ## 触发条件
 
@@ -70,7 +98,7 @@ Agent 会自动检测可用环境并选择合适的版本执行。
 
 收到用户请求后，先判断属于哪个场景：
 
-- **场景零**：首次注册 — 任何功能执行时检测到 `[REGISTRATION_REQUIRED]`，自动引导手机号验证
+- **场景零**：首次注册 — 任何功能执行时检测到 `[REGISTRATION_REQUIRED]`，先询问用户是否已有凭证
 - **场景一**：订单询价 - 用户想知道配送费用，需要提供起始地址和目的地址
 - **场景二**：创建订单 - 用户确认发单，需要询价返回的 priceToken 和收件人电话
 - **场景三**：查询订单详情 - 用户想查看订单状态，需要订单编号
@@ -81,7 +109,7 @@ Agent 会自动检测可用环境并选择合适的版本执行。
 
 ## 场景零：首次注册 / 获取授权
 
-当执行任何功能脚本时，如果输出中包含 `[REGISTRATION_REQUIRED]`，说明用户尚未完成注册授权，需要通过手机号短信验证获取 openId。
+当执行任何功能脚本时，如果输出中包含 `[REGISTRATION_REQUIRED]`，说明用户尚未完成配置。
 
 ### 触发条件
 
@@ -90,11 +118,48 @@ Agent 会自动检测可用环境并选择合适的版本执行。
 
 ### 执行步骤
 
-**Step 1: 询问手机号**
+**Step 1: 询问用户是否已有凭证**
 
-向用户询问：「首次使用需要验证手机号，请输入您的手机号码」
+向用户询问：
 
-**Step 2: 发送短信验证码**
+```
+首次使用需要配置认证信息，请问您是否已有 UU跑腿开放平台的凭证（appId、appSecret、openId）？
+- A: 已有凭证，直接配置
+- B: 没有凭证，通过手机号注册
+```
+
+**如果用户选择 A（已有凭证）→ 进入 Step 1A**
+**如果用户选择 B（没有凭证）→ 进入 Step 2**
+
+---
+
+**Step 1A: 获取用户凭证并保存**
+
+请用户提供三个值：
+- appId
+- appSecret  
+- openId
+
+获取后，将凭证写入 `config.json` 文件：
+```json
+{
+  "appId": "用户提供的appId",
+  "appSecret": "用户提供的appSecret",
+  "openId": "用户提供的openId"
+}
+```
+
+保存成功后：
+- 告知用户「配置完成！」
+- **立即继续执行用户最初要求的功能**（无需用户再次操作）
+
+---
+
+**Step 2: 询问手机号（快速体验模式）**
+
+向用户询问：「请输入您的手机号码，我们将发送验证码完成注册」
+
+**Step 3: 发送短信验证码**
 
 **Node.js 版本：**
 ```bash
@@ -107,7 +172,7 @@ python uupt_delivery.py register --mobile="用户手机号"
 ```
 
 处理结果：
-- 输出 `[SMS_SENT]` → 验证码发送成功，提示用户查看手机短信，进入 Step 3
+- 输出 `[SMS_SENT]` → 验证码发送成功，提示用户查看手机短信，进入 Step 4
 - 输出 `[IMAGE_CAPTCHA_REQUIRED]` → 需要图片验证码，处理方式：
   - 输出中包含 `IMAGE_DATA=data:image/png;base64,...` 的 base64 图片数据
   - 将 base64 图片展示给用户（可使用 show_widget 工具展示 `<img src="IMAGE_DATA中的内容">`）
@@ -117,11 +182,11 @@ python uupt_delivery.py register --mobile="用户手机号"
     node scripts/register.js --mobile="手机号" --imageCode="用户输入的数字"
     ```
 
-**Step 3: 输入短信验证码**
+**Step 4: 输入短信验证码**
 
 提示用户：「验证码已发送，请输入您收到的短信验证码」
 
-**Step 4: 完成授权**
+**Step 5: 完成授权**
 
 **Node.js 版本：**
 ```bash
@@ -139,7 +204,7 @@ python uupt_delivery.py register --mobile="手机号" --sms-code="用户输入�
   - **立即继续执行用户最初要求的功能**（无需用户再次操作）
 - 输出 `[REGISTRATION_FAILED]` → 注册失败
   - **不需要重新询问手机号**
-  - 从 Step 2 开始重试（重新发送验证码 → 用户输入新验证码 → 重新授权）
+  - 从 Step 3 开始重试（重新发送验证码 → 用户输入新验证码 → 重新授权）
   - 最多重试 3 次
   - 3 次仍失败 → 告知用户稍后再试或联系客服
 
@@ -497,17 +562,36 @@ python uupt_delivery.py track --order-code="UU123456789"
 配置分为两层：
 
 - **`defaults.json`**：内置应用凭证（appId、appSecret、apiUrl），随 Skill 分发，**请勿修改**
-- **`config.json`**：用户级配置（openId），通过注册流程自动生成
+- **`config.json`**：用户级配置，首次安装时不存在，通过以下方式创建：
+  - **开发者模式**：用户提供 appId、appSecret、openId 后写入
+  - **快速体验模式**：注册成功后自动创建，仅包含 openId
 
-设置认证信息的方式（优先级从高到低）：
+### 配置优先级（从高到低）
 
-1. **环境变量**：
-   ```bash
-   export UUPT_OPEN_ID=your_open_id        # 最常用，跳过注册流程
-   export UUPT_API_URL=https://api-open.uupt.com/openapi/v3/  # 可选
-   ```
-2. **配置文件**：`config.json`（注册成功后自动生成）
-3. **预制默认**：`defaults.json`（内置 appId 和 appSecret）
+| 配置项 | 环境变量 | config.json | defaults.json |
+|--------|---------|-------------|---------------|
+| appId | `UUPT_APP_ID` | `appId` | `appId` |
+| appSecret | `UUPT_APP_SECRET` | `appSecret` | `appSecret` |
+| openId | `UUPT_OPEN_ID` | `openId` | - |
+| apiUrl | `UUPT_API_URL` | `apiUrl` | `apiUrl` |
+
+### 配置示例
+
+**开发者模式**（用户提供凭证后写入 config.json）：
+```json
+{
+  "appId": "你的appId",
+  "appSecret": "你的appSecret", 
+  "openId": "你的openId"
+}
+```
+
+**快速体验模式**（注册后自动生成的 config.json）：
+```json
+{
+  "openId": "注册成功后自动保存的openId"
+}
+```
 
 ### 可选 API 环境
 

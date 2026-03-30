@@ -53,11 +53,16 @@ async function main() {
       console.log(JSON.stringify(result, null, 2));
       
       // 如果有价格信息，格式化显示
-      if (result.data && result.data.priceInfo) {
+      if (result.body) {
         console.log('\n💰 价格摘要:');
-        console.log(`   预估费用: ${formatPrice(result.data.priceInfo.totalPrice || 0)} 元`);
-        if (result.data.priceToken) {
-          console.log(`   priceToken: ${result.data.priceToken}`);
+        // 优先使用 needPayMoney，其次使用 totalMoney
+        const price = result.body.needPayMoney !== undefined ? result.body.needPayMoney : (result.body.totalMoney || 0);
+        console.log(`   预估费用: ${formatPrice(price)} 元`);
+        if (result.body.distance) {
+          console.log(`   配送距离: ${(result.body.distance / 1000).toFixed(2)} 公里`);
+        }
+        if (result.body.priceToken) {
+          console.log(`   priceToken: ${result.body.priceToken}`);
           console.log('\n💡 提示: 使用此 priceToken 创建订单');
         }
       }

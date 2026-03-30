@@ -349,13 +349,15 @@ def format_price_result(result: dict) -> None:
     """格式化询价结果"""
     print("[结果] 询价结果:")
     print(json.dumps(result, indent=2, ensure_ascii=False))
-    
-    if result.get("body") and result["body"].get("priceInfo"):
+
+    if result.get("body"):
         data = result["body"]
         print("\n[价格] 价格摘要:")
-        price_info = data["priceInfo"]
-        if "totalPrice" in price_info:
-            print(f"   预估费用: {format_price(price_info['totalPrice'])} 元")
+        # 优先使用 needPayMoney，其次使用 totalMoney
+        price = data.get("needPayMoney", data.get("totalMoney", 0))
+        print(f"   预估费用: {format_price(price)} 元")
+        if data.get("distance"):
+            print(f"   配送距离: {data['distance'] / 1000:.2f} 公里")
         if data.get("priceToken"):
             print(f"   priceToken: {data['priceToken']}")
             print("\n[提示] 使用此 priceToken 创建订单")
@@ -434,21 +436,40 @@ def format_create_result(result: dict) -> None:
             print("\n[提示] 使用订单编号可查询订单详情或跟踪跑男位置")
 
 
+def get_order_status_text(state: int) -> str:
+    """订单状态码映射"""
+    status_map = {
+        1: '下单成功',
+        3: '骑手已接单',
+        4: '骑手已到达',
+        5: '骑手已取件',
+        6: '骑手送达中',
+        10: '已完成',
+        11: '已取消',
+        20: '异常订单'
+    }
+    return status_map.get(state, f'未知状态({state})')
+
+
 def format_detail_result(result: dict, order_code: str) -> None:
     """格式化订单详情结果"""
     print("[结果] 订单详情:")
     print(json.dumps(result, indent=2, ensure_ascii=False))
-    
+
     if result.get("body"):
         data = result["body"]
         print("\n[详情] 订单摘要:")
         print(f"   订单编号: {data.get('orderCode', order_code)}")
-        print(f"   订单状态: {data.get('order_status', '-')}")
-        if data.get("price"):
-            print(f"   配送费用: {format_price(data['price'])} 元")
-        if data.get("driver_name"):
-            print(f"   骑手姓名: {data['driver_name']}")
-            print(f"   骑手电话: {data.get('driver_phone', '-')}")
+        print(f"   订单状态: {get_order_status_text(data.get('state', 0))}")
+        if data.get("orderPrice"):
+            print(f"   配送费用: {format_price(data['orderPrice'])} 元")
+        if data.get("fromAddress"):
+            print(f"   起点地址: {data['fromAddress']}")
+        if data.get("toAddress"):
+            print(f"   终点地址: {data['toAddress']}")
+        if data.get("driverName"):
+            print(f"   骑手姓名: {data['driverName']}")
+            print(f"   骑手电话: {data.get('driverMobile', '-')}")
 
 
 def format_cancel_result(result: dict, order_code: str, reason: str) -> None:

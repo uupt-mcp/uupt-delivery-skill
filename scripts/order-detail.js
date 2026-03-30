@@ -7,6 +7,21 @@
 
 const { orderDetail, formatPrice } = require('../index');
 
+// 订单状态码映射
+function getOrderStatusText(state) {
+  const statusMap = {
+    1: '下单成功',
+    3: '骑手已接单',
+    4: '骑手已到达',
+    5: '骑手已取件',
+    6: '骑手送达中',
+    10: '已完成',
+    11: '已取消',
+    20: '异常订单'
+  };
+  return statusMap[state] || `未知状态(${state})`;
+}
+
 // 解析命令行参数
 function parseArgs() {
   const args = {};
@@ -47,17 +62,23 @@ async function main() {
       console.log('📊 订单详情:');
       console.log(JSON.stringify(result, null, 2));
       
-      if (result.data) {
-        const data = result.data;
+      if (result.body) {
+        const data = result.body;
         console.log('\n📋 订单摘要:');
-        console.log(`   订单编号: ${data.order_code || args.orderCode}`);
-        console.log(`   订单状态: ${data.order_status || '-'}`);
-        if (data.price) {
-          console.log(`   配送费用: ${formatPrice(data.price)} 元`);
+        console.log(`   订单编号: ${data.orderCode || args.orderCode}`);
+        console.log(`   订单状态: ${getOrderStatusText(data.state)}`);
+        if (data.orderPrice) {
+          console.log(`   配送费用: ${formatPrice(data.orderPrice)} 元`);
         }
-        if (data.driver_name) {
-          console.log(`   骑手姓名: ${data.driver_name}`);
-          console.log(`   骑手电话: ${data.driver_phone || '-'}`);
+        if (data.fromAddress) {
+          console.log(`   起点地址: ${data.fromAddress}`);
+        }
+        if (data.toAddress) {
+          console.log(`   终点地址: ${data.toAddress}`);
+        }
+        if (data.driverName) {
+          console.log(`   骑手姓名: ${data.driverName}`);
+          console.log(`   骑手电话: ${data.driverMobile || '-'}`);
         }
       }
     }

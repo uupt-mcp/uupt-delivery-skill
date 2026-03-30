@@ -335,7 +335,7 @@ python uupt_delivery.py create --price-token="xxx" --receiver-phone="13800138000
 
 **情况二：余额不足，需要微信支付**
 
-当返回的 JSON 中 `data.orderUrl` 不为空且以 `weixin://` 开头时，表示需要微信扫码支付。
+当返回的 JSON 中 `body.orderUrl` 不为空且以 `weixin://` 开头时，表示需要微信扫码支付。
 
 **识别标记**：脚本输出包含 `[PAYMENT_REQUIRED]` 和 `[WECHAT_PAY_QRCODE]` 时表示需要微信支付。
 
@@ -633,18 +633,18 @@ const priceResult = await orderPrice({
 
 // 创建订单
 const orderResult = await createOrder({
-  priceToken: priceResult.data.priceToken,
+  priceToken: priceResult.body.priceToken,
   receiverPhone: '13800138000'
 });
 
 // 检查是否需要支付
-if (orderResult.data.orderUrl) {
-  console.log('需要支付，打开链接:', orderResult.data.orderUrl);
+if (orderResult.body.orderUrl) {
+  console.log('需要支付，打开链接:', orderResult.body.orderUrl);
 }
 
 // 查询订单
 const detailResult = await orderDetail({
-  orderCode: orderResult.data.order_code
+  orderCode: orderResult.body.orderCode
 });
 ```
 
@@ -662,17 +662,17 @@ price_result = order_price(
 
 # 创建订单
 order_result = create_order(
-    price_token=price_result['data']['priceToken'],
+    price_token=price_result['body']['priceToken'],
     receiver_phone='13800138000'
 )
 
 # 检查是否需要支付
-if order_result['data'].get('orderUrl'):
-    print('需要支付，打开链接:', order_result['data']['orderUrl'])
+if order_result['body'].get('orderUrl'):
+    print('需要支付，打开链接:', order_result['body']['orderUrl'])
 
 # 查询订单
 detail_result = order_detail(
-    order_code=order_result['data']['order_code']
+    order_code=order_result['body']['orderCode']
 )
 ```
 

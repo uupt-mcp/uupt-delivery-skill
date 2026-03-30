@@ -350,8 +350,8 @@ def format_price_result(result: dict) -> None:
     print("[结果] 询价结果:")
     print(json.dumps(result, indent=2, ensure_ascii=False))
     
-    if result.get("data") and result["data"].get("priceInfo"):
-        data = result["data"]
+    if result.get("body") and result["body"].get("priceInfo"):
+        data = result["body"]
         print("\n[价格] 价格摘要:")
         price_info = data["priceInfo"]
         if "totalPrice" in price_info:
@@ -366,12 +366,12 @@ def format_create_result(result: dict) -> None:
     print("[结果] 创建结果:")
     print(json.dumps(result, indent=2, ensure_ascii=False))
     
-    if result.get("data") and result["data"].get("order_code"):
-        data = result["data"]
+    if result.get("body"):
+        data = result["body"]
         # 检查是否需要支付（余额不足）
         if data.get("orderUrl"):
             payment_url = data["orderUrl"]
-            order_code = data["order_code"]
+            order_code = data["orderCode"]
             
             # 检测是否为微信支付 URL
             is_wechat_pay = payment_url.startswith("weixin://")
@@ -387,10 +387,10 @@ def format_create_result(result: dict) -> None:
                 print("   正在生成支付二维码...")
                 
                 try:
-                    # 下载二维码图片到本地临时目录
-                    temp_dir = tempfile.gettempdir()
-                    qr_file_name = f"wechat_pay_{order_code}.png"
-                    qr_file_path = os.path.join(temp_dir, qr_file_name)
+                    # 下载二维码图片到当前工作空间（固定文件名，覆盖之前的）
+                    script_dir = os.path.dirname(os.path.abspath(__file__))
+                    qr_file_name = "wechat_pay_qrcode.png"
+                    qr_file_path = os.path.join(script_dir, qr_file_name)
                     
                     response = requests.get(qrcode_url, timeout=10)
                     response.raise_for_status()
@@ -430,7 +430,7 @@ def format_create_result(result: dict) -> None:
             print("\n   支付完成后，订单将自动生效")
         else:
             print("\n[成功] 订单创建成功!")
-            print(f"   订单编号: {data['order_code']}")
+            print(f"   订单编号: {data['orderCode']}")
             print("\n[提示] 使用订单编号可查询订单详情或跟踪跑男位置")
 
 
@@ -439,10 +439,10 @@ def format_detail_result(result: dict, order_code: str) -> None:
     print("[结果] 订单详情:")
     print(json.dumps(result, indent=2, ensure_ascii=False))
     
-    if result.get("data"):
-        data = result["data"]
+    if result.get("body"):
+        data = result["body"]
         print("\n[详情] 订单摘要:")
-        print(f"   订单编号: {data.get('order_code', order_code)}")
+        print(f"   订单编号: {data.get('orderCode', order_code)}")
         print(f"   订单状态: {data.get('order_status', '-')}")
         if data.get("price"):
             print(f"   配送费用: {format_price(data['price'])} 元")
@@ -468,8 +468,8 @@ def format_track_result(result: dict) -> None:
     print("[结果] 跑男信息:")
     print(json.dumps(result, indent=2, ensure_ascii=False))
     
-    if result.get("data"):
-        data = result["data"]
+    if result.get("body"):
+        data = result["body"]
         print("\n[骑手] 跑男摘要:")
         if data.get("driver_name"):
             print(f"   骑手姓名: {data['driver_name']}")

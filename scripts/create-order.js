@@ -57,11 +57,12 @@ async function main() {
       console.log('📊 创建结果:');
       console.log(JSON.stringify(result, null, 2));
       
-      if (result.data && result.data.order_code) {
+      if (result && result.body) {
+        const data = result.body;
         // 检查是否需要支付（余额不足）
-        if (result.data.orderUrl) {
-          const paymentUrl = result.data.orderUrl;
-          const orderCode = result.data.order_code;
+        if (data.orderUrl) {
+          const paymentUrl = data.orderUrl;
+          const orderCode = data.orderCode;
           
           // 检测是否为微信支付 URL
           const isWechatPay = paymentUrl.startsWith('weixin://');
@@ -77,10 +78,10 @@ async function main() {
             console.log('   正在生成支付二维码...');
             
             try {
-              // 下载二维码图片到本地临时目录
-              const tempDir = os.tmpdir();
-              const qrFileName = `wechat_pay_${orderCode}.png`;
-              const qrFilePath = path.join(tempDir, qrFileName);
+              // 下载二维码图片到当前工作空间（固定文件名，覆盖之前的）
+              const projectRoot = path.dirname(__dirname);
+              const qrFileName = 'wechat_pay_qrcode.png';
+              const qrFilePath = path.join(projectRoot, qrFileName);
               
               const response = await axios.get(qrcodeUrl, { responseType: 'arraybuffer', timeout: 10000 });
               fs.writeFileSync(qrFilePath, response.data);
@@ -119,7 +120,7 @@ async function main() {
           console.log('\n   支付完成后，订单将自动生效');
         } else {
           console.log('\n✅ 订单创建成功!');
-          console.log(`   订单编号: ${result.data.order_code}`);
+          console.log(`   订单编号: ${data.orderCode}`);
           console.log('\n💡 提示: 使用订单编号可查询订单详情或跟踪跑男位置');
         }
       }

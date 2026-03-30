@@ -1,5 +1,5 @@
 ---
-name: uupt-delivery-skill
+name: uupt-delivery
 description: >-
   UU跑腿同城配送服务。支持订单询价、发单下单、查询订单、取消订单、骑手实时追踪。当用户表达任何与"送"、"取"、"寄"、"跑腿"、"发单"、"配送"相关的配送需求时使用此skill。
 version: 1.0.5
@@ -340,7 +340,7 @@ python uupt_delivery.py create --price-token="xxx" --receiver-phone="13800138000
 **识别标记**：脚本输出包含 `[PAYMENT_REQUIRED]` 和 `[WECHAT_PAY_QRCODE]` 时表示需要微信支付。
 
 **关键输出**：
-- `QRCODE_FILE=/tmp/wechat_pay_xxx.png` — 本地二维码图片文件路径
+- `QRCODE_FILE={workspace}/wechat_pay_qrcode.png` — 本地二维码图片文件路径（固定文件名，会覆盖之前的）
 - `QRCODE_URL=https://api.qrserver.com/v1/create-qr-code/?...` — 在线二维码链接（兆底方案）
 
 **处理流程：**
@@ -351,29 +351,44 @@ python uupt_delivery.py create --price-token="xxx" --receiver-phone="13800138000
 - `QRCODE_FILE=` 后的本地文件路径
 - `QRCODE_URL=` 后的在线链接
 
-**回复模板（附件 + 兜底链接）**：
+### 渠道适配：发送微信支付二维码
 
+⚠️ **飞书、钉钉、微信、企业微信、QQ、Telegram 用户**：不能用 markdown 图片语法，必须用 `message` 工具发送附件！
+
+**飞书/钉钉/微信/企业微信/QQ/Telegram 正确方式：**
+```
+message(action=send, channel="{feishu|dingtalk|wechat|wecom|qq|telegram}", path="{QRCODE_FILE}", message="请扫码支付 {price/100} 元")
+```
+
+**其他平台**：提供在线链接，引导用户点击链接打开二维码后用微信扫码支付：
+```
+请打开以下链接显示二维码，使用微信扫码支付 {price/100} 元：
+{QRCODE_URL}
+```
+
+### 回复模板
+
+**飞书/钉钉/微信/企业微信/QQ/Telegram 用户专用：**
 ```
 账户余额不足，需要完成微信支付
 
 订单编号：{order_code}
-配送费用：XX.XX 元
+配送费用：{price/100} 元
 
-请保存下方二维码图片，用微信扫一扫完成支付：
+请扫码支付，支付完成后告诉我。
 
-[附件：微信支付二维码]({QRCODE_FILE})
+（附件：微信支付二维码）
+```
 
-📱 **如果未收到二维码图片**，请点击下方链接保存图片后用微信扫码：
+**兜底链接**（附件发送失败时）：
+```
+📱 如果附件发送失败，请点击链接用微信扫码支付：
 {QRCODE_URL}
-
-支付完成后请回来告诉我。
 ```
 
 **重要说明**：
-- **必须以附件形式发送二维码图片文件**：使用 `[附件：微信支付二维码]({QRCODE_FILE})` 格式，将本地图片作为附件发送给用户
-- 用户在手机聊天软件（飞书、钉钉、微信等）中可直接接收并保存附件图片
-- **兜底方案**：同时提供在线链接 `{QRCODE_URL}`，用户可点击链接在浏览器中打开并保存二维码图片，再用微信扫码支付
-- `{QRCODE_URL}` 格式如：`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=weixin://wxpay/bizpayurl?pr=xxx`
+- 飞书、钉钉、微信、企业微信、QQ、Telegram 必须用 `message(action=send, channel="{feishu|dingtalk|wechat|wecom|qq|telegram}", path="{QRCODE_FILE}")` 发送附件图片
+- 其他平台提供在线链接 `{QRCODE_URL}`，提示用户打开链接用微信扫码支付
 
 2. **等待用户返回**：用户支付后会回来
 
@@ -673,7 +688,7 @@ detail_result = order_detail(
 - **城市默认值**：如未指定城市，默认使用"郑州市"
 - **价格单位**：API 返回的价格单位是分，展示时需除以 100 转换为元
 - **订单状态**：创建订单后请关注订单状态变化
-- **余额不足**：当返回 `[PAYMENT_REQUIRED]` 和 `[WECHAT_PAY_QRCODE]` 时，需以附件形式发送微信支付二维码图片并提供兜底链接引导用户扫码支付
+- **余额不足**：当返回 `[PAYMENT_REQUIRED]` 和 `[WECHAT_PAY_QRCODE]` 时，对于支持附件发送的渠道（飞书、钉钉、微信、企业微信、QQ、Telegram）用 `message` 工具发送附件图片；其他渠道则提供在线链接 `{QRCODE_URL}`，提示用户打开链接后用微信扫码支付
 - **配置文件**：`defaults.json` 为内置凭证，请勿修改或删除
 
 ## 相关链接

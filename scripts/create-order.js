@@ -2,14 +2,13 @@
 
 /**
  * 创建订单脚本
- * 用法: node create-order.js --priceToken="询价token" --receiverPhone="收件人电话"
+ * 用法: node create-order.js --priceToken="询价token" --receiverPhone="收件人电话" [--channel="渠道"]
  */
 
 const { createOrder, formatPrice } = require('../index');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
 
 // 解析命令行参数
 function parseArgs() {
@@ -31,18 +30,20 @@ async function main() {
 📦 创建订单
 
 用法:
-  node create-order.js --priceToken="询价token" --receiverPhone="收件人电话"
+  node create-order.js --priceToken="询价token" --receiverPhone="收件人电话" [--channel="渠道"]
 
 参数:
   --priceToken     询价接口返回的 token（必填）
   --receiverPhone  收件人手机号（必填）
+  --channel        聊天渠道（可选，如 wechat、feishu、dingtalk 等）
 
 示例:
   node create-order.js --priceToken="abc123xyz" --receiverPhone="13800138000"
+  node create-order.js --priceToken="abc123xyz" --receiverPhone="13800138000" --channel="wechat"
 
 注意:
   - priceToken 有时效性，请在询价后尽快创建订单
-  - 如账户余额不足，将返回支付宝支付链接
+  - 如账户余额不足，将返回支付链接，用户可点击选择微信/支付宝支付
 `);
     process.exit(1);
   }
@@ -50,7 +51,8 @@ async function main() {
   try {
     const result = await createOrder({
       priceToken: args.priceToken,
-      receiverPhone: args.receiverPhone
+      receiverPhone: args.receiverPhone,
+      channel: args.channel || ''
     });
     
     if (result) {
@@ -64,54 +66,48 @@ async function main() {
           const paymentUrl = data.orderUrl;
           const orderCode = data.orderCode;
           
-          // 检测是否为微信支付 URL
-          const isWechatPay = paymentUrl.startsWith('weixin://');
-          
           console.log('\n⚠️  账户余额不足，需要完成支付');
           console.log(`   订单编号: ${orderCode}`);
           
-          if (isWechatPay) {
-            // 微信支付：下载二维码图片到本地
+          // 检查是否为微信渠道，只有微信渠道才生成二维码图片
+          const isWechatChannel = args.channel && args.channel.toLowerCase() === 'wechat';
+          
+          if (isWechatChannel) {
+            // 微信渠道：生成二维码图片
             const qrcodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(paymentUrl)}`;
             
-            console.log('\n💳 微信支付');
-            console.log('   正在生成支付二维码...');
-            
             try {
-              // 下载二维码图片到当前工作空间（固定文件名，覆盖之前的）
               const projectRoot = path.dirname(__dirname);
-              const qrFileName = 'wechat_pay_qrcode.png';
+              const qrFileName = 'payment_qrcode.png';
               const qrFilePath = path.join(projectRoot, qrFileName);
               
               const response = await axios.get(qrcodeUrl, { responseType: 'arraybuffer', timeout: 10000 });
               fs.writeFileSync(qrFilePath, response.data);
               
-              console.log('   二维码已生成！');
-              console.log(`   请使用微信扫码支付`);
+              console.log('\n💳 支付信息：');
+              console.log(`   支付链接: ${paymentUrl}`);
+              console.log(`   二维码图片: ${qrFilePath}`);
               
               // 输出特殊标记，供 Agent 识别
               console.log('\n[PAYMENT_REQUIRED]');
-              console.log('[WECHAT_PAY_QRCODE]');
               console.log(`ORDER_CODE=${orderCode}`);
               console.log(`PAYMENT_URL=${paymentUrl}`);
               console.log(`QRCODE_FILE=${qrFilePath}`);
-              console.log(`QRCODE_URL=${qrcodeUrl}`);
             } catch (downloadErr) {
               console.error('   下载二维码失败:', downloadErr.message);
-              console.log(`   请手动访问二维码链接: ${qrcodeUrl}`);
+              
+              console.log('\n💳 支付信息：');
+              console.log(`   支付链接: ${paymentUrl}`);
               
               console.log('\n[PAYMENT_REQUIRED]');
-              console.log('[WECHAT_PAY_QRCODE]');
               console.log(`ORDER_CODE=${orderCode}`);
               console.log(`PAYMENT_URL=${paymentUrl}`);
-              console.log(`QRCODE_URL=${qrcodeUrl}`);
             }
           } else {
-            // 非微信支付（如支付宝）：直接输出链接
-            console.log('\n💳 请点击以下链接完成支付：');
+            // 其他渠道：只输出支付链接
+            console.log('\n💳 支付信息：');
             console.log(`   支付链接: ${paymentUrl}`);
             
-            // 输出特殊标记，供 Agent 识别
             console.log('\n[PAYMENT_REQUIRED]');
             console.log(`ORDER_CODE=${orderCode}`);
             console.log(`PAYMENT_URL=${paymentUrl}`);

@@ -2,7 +2,7 @@
 name: uupt-delivery
 description: >-
   UU跑腿同城配送服务。支持订单询价、发单下单、查询订单、取消订单、骑手实时追踪。当用户表达任何与"送"、"取"、"寄"、"跑腿"、"发单"、"配送"相关的配送需求时使用此skill。
-version: 1.0.5
+version: 1.0.6
 metadata:
   openclaw:
     requires:
@@ -29,7 +29,7 @@ UU跑腿同城配送服务为用户提供便捷的同城即时配送能力，包
 - 📱 手机号一键注册（首次使用自动引导）
 - 💰 订单询价（计算配送费用）
 - 📦 创建配送订单
-- 💳 微信扫码支付（余额不足时自动生成支付二维码）
+- 💳 在线支付（余额不足时提供支付链接，支持微信/支付宝）
 - 📋 查询订单详情
 - ❌ 取消订单
 - 🏃 跑男实时位置追踪
@@ -298,13 +298,23 @@ python uupt_delivery.py price --from-address="起始地址" --to-address="目的
 
 **Step 2: 立即创建订单**
 
+⚠️ **重要**：如果是微信渠道，必须传递 `--channel="wechat"` 参数以生成支付二维码图片。
+
 **Node.js 版本：**
 ```bash
+# 微信渠道（生成二维码图片）
+node scripts/create-order.js --priceToken="xxx" --receiverPhone="13800138000" --channel="wechat"
+
+# 其他渠道（只输出支付链接）
 node scripts/create-order.js --priceToken="xxx" --receiverPhone="13800138000"
 ```
 
 **Python 版本：**
 ```bash
+# 微信渠道（生成二维码图片）
+python uupt_delivery.py create --price-token="xxx" --receiver-phone="13800138000" --channel="wechat"
+
+# 其他渠道（只输出支付链接）
 python uupt_delivery.py create --price-token="xxx" --receiver-phone="13800138000"
 ```
 
@@ -314,6 +324,7 @@ python uupt_delivery.py create --price-token="xxx" --receiver-phone="13800138000
 |-----------|--------------|------|------|
 | `--priceToken` | `--price-token` | 询价接口返回的 token | 是 |
 | `--receiverPhone` | `--receiver-phone` | 收件人手机号 | 是 |
+| `--channel` | `--channel` | 聊天渠道（wechat/feishu/dingtalk 等） | 否 |
 
 ### 返回结果处理
 
@@ -333,73 +344,82 @@ python uupt_delivery.py create --price-token="xxx" --receiver-phone="13800138000
 
 ---
 
-**情况二：余额不足，需要微信支付**
+**情况二：余额不足，需要在线支付**
 
-当返回的 JSON 中 `body.orderUrl` 不为空且以 `weixin://` 开头时，表示需要微信扫码支付。
+当返回的 JSON 中 `body.orderUrl` 不为空时，表示需要用户完成支付。
 
-**识别标记**：脚本输出包含 `[PAYMENT_REQUIRED]` 和 `[WECHAT_PAY_QRCODE]` 时表示需要微信支付。
+**识别标记**：脚本输出包含 `[PAYMENT_REQUIRED]` 时表示需要支付。
 
 **关键输出**：
-- `QRCODE_FILE={workspace}/wechat_pay_qrcode.png` — 本地二维码图片文件路径（固定文件名，会覆盖之前的）
-- `QRCODE_URL=https://api.qrserver.com/v1/create-qr-code/?...` — 在线二维码链接（兆底方案）
+- `ORDER_CODE={order_code}` — 订单编号
+- `PAYMENT_URL={payment_url}` — 支付链接（用户点击后可选择微信或支付宝支付）
+- `QRCODE_FILE={qrcode_path}` — 支付二维码图片本地路径（**只有传递 `--channel="wechat"` 时才有此输出**）
 
 **处理流程：**
 
-1. **展示支付二维码给用户**：
+1. **根据渠道调用脚本**：
 
-从脚本输出中提取：
-- `QRCODE_FILE=` 后的本地文件路径
-- `QRCODE_URL=` 后的在线链接
+- 微信渠道：必须传递 `--channel="wechat"` 参数以生成二维码图片
+- 其他渠道：无需传递 `--channel` 参数
 
-### 渠道适配：发送微信支付二维码
+2. **根据渠道展示支付信息**：
 
-⚠️ **飞书、钉钉、微信、企业微信、QQ、Telegram 用户**：不能用 markdown 图片语法，必须用 `message` 工具发送附件！
+### 渠道适配：发送支付信息
 
-**飞书/钉钉/微信/企业微信/QQ/Telegram 正确方式：**
+⚠️ **微信渠道特殊处理**：微信中链接无法直接打开，必须发送二维码图片附件！
+
+**微信渠道：**
 ```
-message(action=send, channel="{feishu|dingtalk|wechat|wecom|qq|telegram}", path="{QRCODE_FILE}", message="请扫码支付 {price/100} 元")
+message(action=send, channel="wechat", path="{QRCODE_FILE}", message="请扫码支付 {price/100} 元")
 ```
 
-**其他平台**：提供在线链接，引导用户点击链接打开二维码后用微信扫码支付：
+**其他渠道（飞书/钉钉/企业微信/QQ/Telegram/其他）**：直接发送支付链接：
 ```
-请打开以下链接显示二维码，使用微信扫码支付 {price/100} 元：
-{QRCODE_URL}
+💳 请点击以下链接完成支付（支持微信/支付宝）：
+{PAYMENT_URL}
 ```
 
 ### 回复模板
 
-**飞书/钉钉/微信/企业微信/QQ/Telegram 用户专用：**
+**微信渠道专用：**
 ```
-账户余额不足，需要完成微信支付
+账户余额不足，需要完成支付
 
 订单编号：{order_code}
 配送费用：{price/100} 元
 
 请扫码支付，支付完成后告诉我。
 
-（附件：微信支付二维码）
+（附件：支付二维码）
 ```
 
-**兜底链接**（附件发送失败时）：
+**其他渠道：**
 ```
-📱 如果附件发送失败，请点击链接用微信扫码支付：
-{QRCODE_URL}
+账户余额不足，需要完成支付
+
+订单编号：{order_code}
+配送费用：{price/100} 元
+
+💳 请点击以下链接完成支付（支持微信/支付宝）：
+{PAYMENT_URL}
+
+支付完成后请告诉我。
 ```
 
 **重要说明**：
-- 飞书、钉钉、微信、企业微信、QQ、Telegram 必须用 `message(action=send, channel="{feishu|dingtalk|wechat|wecom|qq|telegram}", path="{QRCODE_FILE}")` 发送附件图片
-- 其他平台提供在线链接 `{QRCODE_URL}`，提示用户打开链接用微信扫码支付
+- 微信渠道必须用 `message(action=send, channel="wechat", path="{QRCODE_FILE}")` 发送二维码图片附件
+- 其他渠道直接发送 `{PAYMENT_URL}` 支付链接
 
-2. **等待用户返回**：用户支付后会回来
+3. **等待用户返回**：用户支付后会回来
 
-3. **确认支付状态**：当用户回来时，询问用户是否已完成支付：
+4. **确认支付状态**：当用户回来时，询问用户是否已完成支付：
 ```
 您好，请问是否已完成支付？
 - 是，已支付完成
 - 否，还未支付
 ```
 
-4. **用户确认支付完成后**：立即调用订单详情接口查询订单状态
+5. **用户确认支付完成后**：立即调用订单详情接口查询订单状态
 
 **Node.js 版本：**
 ```bash
@@ -411,7 +431,7 @@ node scripts/order-detail.js --orderCode="{order_code}"
 python uupt_delivery.py detail --order-code="{order_code}"
 ```
 
-5. **展示订单详情**：
+6. **展示订单详情**：
 
 ```
 支付成功！订单详情如下：
@@ -434,7 +454,7 @@ Agent：
 1. 执行询价 → 获取 priceToken
 2. 立即执行创建订单（不询问确认）
 3. 如果余额充足 → 返回成功信息
-4. 如果余额不足 → 输出支付链接
+4. 如果余额不足 → 输出支付链接，用户点击后可选择微信/支付宝
 
 --- 用户去支付 ---
 
@@ -688,7 +708,7 @@ detail_result = order_detail(
 - **城市默认值**：如未指定城市，默认使用"郑州市"
 - **价格单位**：API 返回的价格单位是分，展示时需除以 100 转换为元
 - **订单状态**：创建订单后请关注订单状态变化
-- **余额不足**：当返回 `[PAYMENT_REQUIRED]` 和 `[WECHAT_PAY_QRCODE]` 时，对于支持附件发送的渠道（飞书、钉钉、微信、企业微信、QQ、Telegram）用 `message` 工具发送附件图片；其他渠道则提供在线链接 `{QRCODE_URL}`，提示用户打开链接后用微信扫码支付
+- **余额不足**：当返回 `[PAYMENT_REQUIRED]` 时，微信渠道用 `message` 工具发送 `{QRCODE_FILE}` 二维码图片附件；其他渠道直接发送 `{PAYMENT_URL}` 支付链接
 - **配置文件**：`defaults.json` 为内置凭证，请勿修改或删除
 
 ## 相关链接

@@ -320,9 +320,10 @@ async function orderPrice(params) {
  * @param {Object} params - 订单参数
  * @param {string} params.priceToken - 询价返回的 token（必填）
  * @param {string} params.receiverPhone - 收件人电话（必填）
+ * @param {string} [params.channel] - 聊天渠道（wechat 渠道 specialChannel=4，其他渠道=2）
  */
 async function createOrder(params) {
-  const { priceToken, receiverPhone } = params;
+  const { priceToken, receiverPhone, channel } = params;
   
   if (!priceToken) {
     throw new Error('priceToken 为必填项，请先调用订单询价接口');
@@ -332,12 +333,16 @@ async function createOrder(params) {
     throw new Error('收件人电话为必填项');
   }
   
+  // 微信渠道 specialChannel=4，其他渠道=2
+  const isWechat = channel && channel.toLowerCase() === 'wechat';
+  const specialChannel = isWechat ? 4 : 2;
+  
   const biz = {
     priceToken: priceToken,
     receiver_phone: receiverPhone,
     pushType: 'OPEN_ORDER',
     payType: 'BALANCE_PAY',
-    specialChannel: 2,
+    specialChannel: specialChannel,
     specialType: 'NOT_NEED_WARM'
   };
   

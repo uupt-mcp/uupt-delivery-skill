@@ -287,19 +287,29 @@ def order_price(from_address: str, to_address: str, city_name: str = "郑州市"
     return post_request(biz, "order/orderPrice")
 
 
-def create_order(price_token: str, receiver_phone: str) -> dict:
-    """创建订单"""
+def create_order(price_token: str, receiver_phone: str, channel: str = "") -> dict:
+    """创建订单
+    
+    Args:
+        price_token: 询价返回的 token
+        receiver_phone: 收件人电话
+        channel: 聊天渠道（wechat 渠道 specialChannel=4，其他渠道=2）
+    """
     if not price_token:
         raise ValueError("priceToken 为必填项，请先调用订单询价接口")
     if not receiver_phone:
         raise ValueError("收件人电话为必填项")
+    
+    # 微信渠道 specialChannel=4，其他渠道=2
+    is_wechat = channel.lower() == 'wechat' if channel else False
+    special_channel = 4 if is_wechat else 2
     
     biz = {
         "priceToken": price_token,
         "receiver_phone": receiver_phone,
         "pushType": "OPEN_ORDER",
         "payType": "BALANCE_PAY",
-        "specialChannel": 2,
+        "specialChannel": special_channel,
         "specialType": "NOT_NEED_WARM",
     }
     
@@ -363,8 +373,13 @@ def format_price_result(result: dict) -> None:
             print("\n[提示] 使用此 priceToken 创建订单")
 
 
-def format_create_result(result: dict) -> None:
-    """格式化创建订单结果"""
+def format_create_result(result: dict, channel: str = "") -> None:
+    """格式化创建订单结果
+    
+    Args:
+        result: API 返回结果
+        channel: 聊天渠道（只有 wechat 渠道才生成二维码图片）
+    """
     print("[结果] 创建结果:")
     print(json.dumps(result, indent=2, ensure_ascii=False))
     
@@ -375,23 +390,19 @@ def format_create_result(result: dict) -> None:
             payment_url = data["orderUrl"]
             order_code = data["orderCode"]
             
-            # 检测是否为微信支付 URL
-            is_wechat_pay = payment_url.startswith("weixin://")
-            
             print("\n[警告] 账户余额不足，需要完成支付")
             print(f"   订单编号: {order_code}")
             
-            if is_wechat_pay:
-                # 微信支付：下载二维码图片到本地
+            # 检查是否为微信渠道，只有微信渠道才生成二维码图片
+            is_wechat_channel = channel.lower() == 'wechat' if channel else False
+            
+            if is_wechat_channel:
+                # 微信渠道：生成二维码图片
                 qrcode_url = f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={quote(payment_url, safe='')}"
                 
-                print("\n[支付] 微信支付")
-                print("   正在生成支付二维码...")
-                
                 try:
-                    # 下载二维码图片到当前工作空间（固定文件名，覆盖之前的）
                     script_dir = os.path.dirname(os.path.abspath(__file__))
-                    qr_file_name = "wechat_pay_qrcode.png"
+                    qr_file_name = "payment_qrcode.png"
                     qr_file_path = os.path.join(script_dir, qr_file_name)
                     
                     response = requests.get(qrcode_url, timeout=10)
@@ -400,31 +411,28 @@ def format_create_result(result: dict) -> None:
                     with open(qr_file_path, 'wb') as f:
                         f.write(response.content)
                     
-                    print("   二维码已生成！")
-                    print("   请使用微信扫码支付")
+                    print("\n[支付] 支付信息：")
+                    print(f"   支付链接: {payment_url}")
+                    print(f"   二维码图片: {qr_file_path}")
                     
-                    # 输出特殊标记，供 Agent 识别
                     print("\n[PAYMENT_REQUIRED]")
-                    print("[WECHAT_PAY_QRCODE]")
                     print(f"ORDER_CODE={order_code}")
                     print(f"PAYMENT_URL={payment_url}")
                     print(f"QRCODE_FILE={qr_file_path}")
-                    print(f"QRCODE_URL={qrcode_url}")
                 except Exception as e:
                     print(f"   下载二维码失败: {e}")
-                    print(f"   请手动访问二维码链接: {qrcode_url}")
+                    
+                    print("\n[支付] 支付信息：")
+                    print(f"   支付链接: {payment_url}")
                     
                     print("\n[PAYMENT_REQUIRED]")
-                    print("[WECHAT_PAY_QRCODE]")
                     print(f"ORDER_CODE={order_code}")
                     print(f"PAYMENT_URL={payment_url}")
-                    print(f"QRCODE_URL={qrcode_url}")
             else:
-                # 非微信支付（如支付宝）：直接输出链接
-                print("\n[支付] 请点击以下链接完成支付：")
+                # 其他渠道：只输出支付链接
+                print("\n[支付] 支付信息：")
                 print(f"   支付链接: {payment_url}")
                 
-                # 输出特殊标记，供 Agent 识别
                 print("\n[PAYMENT_REQUIRED]")
                 print(f"ORDER_CODE={order_code}")
                 print(f"PAYMENT_URL={payment_url}")
@@ -618,10 +626,11 @@ def main():
         elif command == "create":
             parser.add_argument("--price-token", required=True, help="询价返回的token")
             parser.add_argument("--receiver-phone", required=True, help="收件人电话")
+            parser.add_argument("--channel", default="", help="聊天渠道（如 wechat、feishu、dingtalk 等）")
             args = parser.parse_args(sys.argv[2:])
             
-            result = create_order(args.price_token, args.receiver_phone)
-            format_create_result(result)
+            result = create_order(args.price_token, args.receiver_phone, args.channel)
+            format_create_result(result, args.channel)
             
         elif command == "detail":
             parser.add_argument("--order-code", required=True, help="订单编号")

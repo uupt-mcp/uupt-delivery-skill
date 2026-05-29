@@ -72,36 +72,59 @@ async function main() {
           const paymentUrl = data.orderUrl;
           const orderCode = data.orderCode;
           
-          console.log('\n⚠️  账户余额不足，需要完成支付');
-          console.log(`   订单编号: ${orderCode}`);
-          
-          // 检查是否为微信渠道，只有微信渠道才生成二维码图片
-          const isWechatChannel = args.channel && args.channel.toLowerCase() === 'wechat';
-          
-          if (isWechatChannel) {
-            // 微信渠道：生成二维码图片
-            const qrcodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(paymentUrl)}`;
+          // 帮帮订单（有 --note 参数）：暂不支持第三方支付，提示用户充值
+          if (args.note) {
+            console.log('\n⚠️  帮帮订单暂不支持第三方支付');
+            console.log(`   订单编号: ${orderCode}`);
+            console.log('\n💡 请通过 UU跑腿APP或联系客服为账户充值后重新下单');
             
-            try {
-              const projectRoot = path.dirname(__dirname);
-              const qrFileName = 'payment_qrcode.png';
-              const qrFilePath = path.join(projectRoot, qrFileName);
+            console.log('\n[RECHARGE_REQUIRED]');
+            console.log(`ORDER_CODE=${orderCode}`);
+            console.log("NOTE=${args.note}");
+            console.log('HELP_ORDER_NO_THIRD_PARTY_PAY=帮帮订单暂不支持第三方支付，需要充值后重新下单');
+            
+            console.log('\n   充值完成后，请重新发起下单');
+          } else {
+            // 跑腿配送订单：引导第三方支付
+            console.log('\n⚠️  账户余额不足，需要完成支付');
+            console.log(`   订单编号: ${orderCode}`);
+            
+            // 检查是否为微信渠道，只有微信渠道才生成二维码图片
+            const isWechatChannel = args.channel && args.channel.toLowerCase() === 'wechat';
+            
+            if (isWechatChannel) {
+              // 微信渠道：生成二维码图片
+              const qrcodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(paymentUrl)}`;
               
-              const response = await axios.get(qrcodeUrl, { responseType: 'arraybuffer', timeout: 10000 });
-              fs.writeFileSync(qrFilePath, response.data);
-              
-              console.log('\n💳 支付信息：');
-              console.log(`   支付链接: ${paymentUrl}`);
-              console.log(`   二维码图片: ${qrFilePath}`);
-              
-              // 输出特殊标记，供 Agent 识别
-              console.log('\n[PAYMENT_REQUIRED]');
-              console.log(`ORDER_CODE=${orderCode}`);
-              console.log(`PAYMENT_URL=${paymentUrl}`);
-              console.log(`QRCODE_FILE=${qrFilePath}`);
-            } catch (downloadErr) {
-              console.error('   下载二维码失败:', downloadErr.message);
-              
+              try {
+                const projectRoot = path.dirname(__dirname);
+                const qrFileName = 'payment_qrcode.png';
+                const qrFilePath = path.join(projectRoot, qrFileName);
+                
+                const response = await axios.get(qrcodeUrl, { responseType: 'arraybuffer', timeout: 10000 });
+                fs.writeFileSync(qrFilePath, response.data);
+                
+                console.log('\n💳 支付信息：');
+                console.log(`   支付链接: ${paymentUrl}`);
+                console.log(`   二维码图片: ${qrFilePath}`);
+                
+                // 输出特殊标记，供 Agent 识别
+                console.log('\n[PAYMENT_REQUIRED]');
+                console.log(`ORDER_CODE=${orderCode}`);
+                console.log(`PAYMENT_URL=${paymentUrl}`);
+                console.log(`QRCODE_FILE=${qrFilePath}`);
+              } catch (downloadErr) {
+                console.error('   下载二维码失败:', downloadErr.message);
+                
+                console.log('\n💳 支付信息：');
+                console.log(`   支付链接: ${paymentUrl}`);
+                
+                console.log('\n[PAYMENT_REQUIRED]');
+                console.log(`ORDER_CODE=${orderCode}`);
+                console.log(`PAYMENT_URL=${paymentUrl}`);
+              }
+            } else {
+              // 其他渠道：只输出支付链接
               console.log('\n💳 支付信息：');
               console.log(`   支付链接: ${paymentUrl}`);
               
@@ -109,17 +132,9 @@ async function main() {
               console.log(`ORDER_CODE=${orderCode}`);
               console.log(`PAYMENT_URL=${paymentUrl}`);
             }
-          } else {
-            // 其他渠道：只输出支付链接
-            console.log('\n💳 支付信息：');
-            console.log(`   支付链接: ${paymentUrl}`);
             
-            console.log('\n[PAYMENT_REQUIRED]');
-            console.log(`ORDER_CODE=${orderCode}`);
-            console.log(`PAYMENT_URL=${paymentUrl}`);
+            console.log('\n   支付完成后，订单将自动生效');
           }
-          
-          console.log('\n   支付完成后，订单将自动生效');
         } else {
           console.log('\n✅ 订单创建成功!');
           console.log(`   订单编号: ${data.orderCode}`);

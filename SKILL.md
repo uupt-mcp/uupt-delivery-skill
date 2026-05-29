@@ -1,7 +1,7 @@
 ---
 name: uupt-delivery
 description: >-
-  UU跑腿同城配送服务。支持订单询价、发单下单、查询订单、取消订单、骑手实时追踪。当用户表达任何与"送"、"取"、"寄"、"跑腿"、"发单"、"配送"相关的配送需求时使用此skill。
+  UU跑腿同城配送服务。支持跑腿配送(SEND)和帮忙服务(HELP)两种订单类型，包括订单询价、发单下单、查询订单、取消订单、骑手实时追踪。当用户表达任何与"送"、"取"、"寄"、"跑腿"、"发单"、"配送"、"帮忙"、"帮我"、"代取号"、"代排队"、"搬东西"等配送或帮忙需求时使用此skill。
 version: 1.0.6
 metadata:
   openclaw:
@@ -22,13 +22,14 @@ metadata:
 
 # UU跑腿同城配送服务 Skill
 
-UU跑腿同城配送服务为用户提供便捷的同城即时配送能力，包括订单询价、发单、订单管理和跑男实时追踪等功能。
+UU跑腿同城配送服务为用户提供便捷的同城即时配送能力和现场帮忙服务，包括订单询价、发单、订单管理和跑男实时追踪等功能。
 
 ## 功能特性
 
 - 📱 手机号一键注册（首次使用自动引导）
-- 💰 订单询价（计算配送费用）
-- 📦 创建配送订单
+- 💰 订单询价（计算配送/帮忙服务费用）
+- 📦 创建跑腿配送订单（从A地到B地）
+- 🤝 创建帮忙服务订单（在指定地点获得现场协助）
 - 💳 在线支付（余额不足时提供支付链接，支持微信/支付宝）
 - 📋 查询订单详情
 - ❌ 取消订单
@@ -87,23 +88,51 @@ export UUPT_OPEN_ID=你的openId
 ## 触发条件
 
 用户表达了以下意图之一：
+
+**跑腿配送(SEND)：**
 - 询问配送价格（如"从A地址送到B地址多少钱"、"帮我算下配送费"）
 - 下单配送（如"帮我发个跑腿单"、"我要寄东西"、"同城配送"）
+- 包含"跑腿"、"配送"、"寄送"、"送东西"、"取东西"等关键词
+
+**帮忙服务(HELP)：**
+- 请求现场帮忙（如"帮我搬东西"、"帮我排队取号"、"帮我扔垃圾"）
+- 代取号/代排队（如"帮我在餐厅取个号"、"帮我在医院挂个号"）
+- 其他现场协助（如"帮我装个东西"、"帮我买个东西带过来"）
+- 包含"帮忙"、"帮我"、"代取号"、"代排队"、"搬东西"、"扔垃圾"等关键词
+
+**通用操作：**
 - 查询订单（如"查看订单状态"、"订单到哪了"）
 - 取消订单（如"取消这个订单"、"不想发了"）
 - 追踪跑男（如"骑手在哪"、"跑男到哪了"、"配送进度"）
-- 包含"跑腿"、"配送"、"寄送"、"订单"、"骑手"、"跑男"等关键词
 
 ## 场景判断
 
 收到用户请求后，先判断属于哪个场景：
 
 - **场景零**：首次注册 — 任何功能执行时检测到 `[REGISTRATION_REQUIRED]`，先询问用户是否已有凭证
-- **场景一**：订单询价 - 用户想知道配送费用，需要提供起始地址和目的地址
-- **场景二**：创建订单 - 用户确认发单，需要询价返回的 priceToken 和收件人电话
+- **场景一**：订单询价 - 用户想知道费用
+  - 跑腿配送：需要起始地址和目的地址
+  - 帮忙服务：只需要帮忙地点（起始地址和目的地址相同）
+- **场景二**：创建订单 - 用户确认发单
+  - 跑腿配送：需要询价返回的 priceToken 和收件人电话
+  - 帮忙服务：额外需要 `--note` 参数描述具体帮忙内容
 - **场景三**：查询订单详情 - 用户想查看订单状态，需要订单编号
 - **场景四**：取消订单 - 用户要取消订单，需要订单编号
 - **场景五**：跑男追踪 - 用户想查看跑男实时位置，需要订单编号
+- **场景六**：帮忙订单（完整流程）— 专门的帮忙服务下单指南
+
+### 智能识别：跑腿配送 vs 帮忙服务
+
+当用户表达发单需求时，Agent 需要智能识别用户意图：
+
+| 用户表达 | 识别为 | 判断依据 |
+|---------|--------|---------|
+| "从A送到B"、"把X寄到Y"、"配送" | 跑腿配送(SEND) | 涉及两个不同地点之间的物品传递 |
+| "帮我在X地点..."、"帮我去..."、"帮我搬/扔/装/买..." | 帮忙服务(HELP) | 只有一个地点，需要跑男在现场提供协助 |
+| "帮我买个X送到Y" | 跑腿配送(SEND) | 本质是从A到B的配送，虽然用了"帮"字 |
+| "帮我在医院挂个号"、"帮我在餐厅取号" | 帮忙服务(HELP) | 在现场执行特定任务，不涉及物品配送 |
+
+**关键判断原则**：如果任务的核心是从A地到B地传递物品 → 跑腿配送；如果任务的核心是在某个地点提供现场协助 → 帮忙服务。
 
 ---
 
@@ -219,14 +248,20 @@ python uupt_delivery.py register --mobile="手机号" --sms-code="用户输入�
 
 ## 场景一：订单询价
 
-计算从起始地址到目的地址的配送费用。用户可以只询价不发单。
+计算配送费用或帮忙服务费用。用户可以只询价不发单。
 
 ### 执行步骤
 
-1. **执行询价脚本**：从用户输入中提取起始地址、目的地址、城市（可选）
-2. **如果输出 `[REGISTRATION_REQUIRED]`**：进入场景零完成注册后，重新执行询价
+1. **判断订单类型**：根据用户意图确定是跑腿配送还是帮忙服务
+2. **获取地址信息**：
+   - 跑腿配送：需要起始地址和目的地址
+   - 帮忙服务：只需要帮忙地点（询价时会自动将起始地址同时作为目的地址）
+3. **执行询价脚本**
+4. **如果输出 `[REGISTRATION_REQUIRED]`**：进入场景零完成注册后，重新执行询价
 
 ### 使用方法
+
+**跑腿配送询价：**
 
 **Node.js 版本：**
 ```bash
@@ -238,13 +273,26 @@ node scripts/order-price.js --fromAddress="郑州市金水区农业路经三路�
 python uupt_delivery.py price --from-address="郑州市金水区农业路经三路交叉口" --to-address="郑州市二七区德化街100号" --city="郑州市"
 ```
 
+**帮忙服务询价：**
+
+**Node.js 版本：**
+```bash
+node scripts/order-price.js --fromAddress="郑州市金水区农业路经三路交叉口" --orderType="help"
+```
+
+**Python 版本：**
+```bash
+python uupt_delivery.py price --from-address="郑州市金水区农业路经三路交叉口" --order-type="help"
+```
+
 ### 参数说明
 
 | 参数 (JS) | 参数 (Python) | 说明 | 必填 |
 |-----------|--------------|------|------|
-| `--fromAddress` | `--from-address` | 起始地址（完整地址） | 是 |
-| `--toAddress` | `--to-address` | 目的地址（完整地址） | 是 |
+| `--fromAddress` | `--from-address` | 起始地址（帮忙订单时为帮忙地点） | 是 |
+| `--toAddress` | `--to-address` | 目的地址（帮忙订单时自动与起始地址相同） | 跑腿必填 |
 | `--cityName` | `--city` | 城市名称（需要带"市"字） | 否 |
+| `--orderType` | `--order-type` | 订单类型：`send`=跑腿配送（默认），`help`=帮忙服务 | 否 |
 
 ### 返回结果
 
@@ -252,6 +300,7 @@ python uupt_delivery.py price --from-address="郑州市金水区农业路经三�
 
 ### 回复模板
 
+**跑腿配送：**
 ```
 💰 配送费用查询结果：
 
@@ -262,29 +311,44 @@ python uupt_delivery.py price --from-address="郑州市金水区农业路经三�
 📝 如需下单，请提供收件人电话。
 ```
 
+**帮忙服务：**
+```
+💰 帮忙服务费用查询结果：
+
+服务地点：{fromAddress}
+预估费用：{price/100} 元
+
+📝 如需下单，请提供收件人电话和具体帮忙内容。
+```
+
 ---
 
 ## 场景二：创建订单（发单）
 
 当用户明确表示要发单/下单时，**询价后直接创建订单**，无需二次确认。
 
-### 触发条件
+### 订单类型
 
-用户表达了发单意图，如：
-- "帮我发个单"、"我要寄东西"、"帮我下单"
-- "从A送到B，收件人电话xxx"
-- "帮我配送xxx到xxx"
+- **跑腿配送(SEND)**：从A地配送到B地，需要起始地址、目的地址、收件人电话
+- **帮忙服务(HELP)**：在指定地点提供现场协助，需要帮忙地点、收件人电话、**帮忙内容描述(note)**
 
 ### 执行步骤
 
-1. **获取必要信息**：起始地址、目的地址、收件人电话（必须在发单前获取）
-2. **调用询价接口**：获取 priceToken
+1. **获取必要信息**：
+   - 跑腿配送：起始地址、目的地址、收件人电话
+   - 帮忙服务：帮忙地点、收件人电话、**具体帮忙内容**
+2. **调用询价接口**：根据订单类型传递对应参数
+   - 跑腿配送：传 `--fromAddress` 和 `--toAddress`
+   - 帮忙服务：传 `--fromAddress` 和 `--orderType="help"`
 3. **立即创建订单**：使用 priceToken 直接创建订单，**不询问用户是否确认**
+   - 帮忙订单必须传递 `--note` 参数描述帮忙内容
 4. **处理返回结果**：根据余额情况进行不同处理
 
 ### 使用方法
 
 **Step 1: 先询价获取 priceToken**
+
+跑腿配送询价：
 
 **Node.js 版本：**
 ```bash
@@ -296,9 +360,23 @@ node scripts/order-price.js --fromAddress="起始地址" --toAddress="目的地�
 python uupt_delivery.py price --from-address="起始地址" --to-address="目的地址"
 ```
 
+帮忙服务询价：
+
+**Node.js 版本：**
+```bash
+node scripts/order-price.js --fromAddress="帮忙地点" --orderType="help"
+```
+
+**Python 版本：**
+```bash
+python uupt_delivery.py price --from-address="帮忙地点" --order-type="help"
+```
+
 **Step 2: 立即创建订单**
 
-⚠️ **重要**：如果是微信渠道，必须传递 `--channel="wechat"` 参数以生成支付二维码图片。
+⚠️ **重要**：如果是微信渠道，必须传递 `--channel="wechat"` 参数以生成支付二维码图片。帮忙订单必须传递 `--note` 参数。
+
+**跑腿配送：**
 
 **Node.js 版本：**
 ```bash
@@ -318,6 +396,26 @@ python uupt_delivery.py create --price-token="xxx" --receiver-phone="13800138000
 python uupt_delivery.py create --price-token="xxx" --receiver-phone="13800138000"
 ```
 
+**帮忙服务：**
+
+**Node.js 版本：**
+```bash
+# 微信渠道
+node scripts/create-order.js --priceToken="xxx" --receiverPhone="13800138000" --channel="wechat" --note="帮我搬一箱矿泉水到3楼"
+
+# 其他渠道
+node scripts/create-order.js --priceToken="xxx" --receiverPhone="13800138000" --note="帮我在郑州人民医院挂个号"
+```
+
+**Python 版本：**
+```bash
+# 微信渠道
+python uupt_delivery.py create --price-token="xxx" --receiver-phone="13800138000" --channel="wechat" --note="帮我搬一箱矿泉水到3楼"
+
+# 其他渠道
+python uupt_delivery.py create --price-token="xxx" --receiver-phone="13800138000" --note="帮我在郑州人民医院挂个号"
+```
+
 ### 参数说明
 
 | 参数 (JS) | 参数 (Python) | 说明 | 必填 |
@@ -325,6 +423,7 @@ python uupt_delivery.py create --price-token="xxx" --receiver-phone="13800138000
 | `--priceToken` | `--price-token` | 询价接口返回的 token | 是 |
 | `--receiverPhone` | `--receiver-phone` | 收件人手机号 | 是 |
 | `--channel` | `--channel` | 聊天渠道（wechat/feishu/dingtalk 等） | 否 |
+| `--note` | `--note` | 帮忙内容描述（帮忙订单时必填，描述具体需要跑男提供的帮助服务） | 帮忙必填 |
 
 ### 返回结果处理
 
@@ -592,6 +691,139 @@ python uupt_delivery.py track --order-code="UU123456789"
 
 ---
 
+## 场景六：帮忙订单（完整流程）
+
+帮忙订单用于在指定地点获得跑男的现场协助服务，如代取号、代排队、搬东西、扔垃圾等。
+
+### 适用场景
+
+| 分类 | 具体场景举例 |
+|------|-------------|
+| 帮取号 | 餐厅排队取号、医院挂号、银行取号等 |
+| 帮搬装 | 搬家协助、搬重物上楼、装家具等 |
+| 帮扔杂物 | 扔大件垃圾、清理杂物等 |
+| 其他帮忙 | 代购现场物品、排队等候、其他临时协助 |
+
+### 触发条件
+
+用户表达了帮忙服务意图，如：
+- "帮我在XXX地点搬个东西"、"帮我扔个垃圾"
+- "帮我在XXX餐厅取个号"、"帮我在XX医院挂个号"
+- "我需要有人在XXX帮我..."
+
+### 与跑腿配送的区别
+
+| 维度 | 跑腿配送(SEND) | 帮忙服务(HELP) |
+|------|---------------|---------------|
+| 核心行为 | 物品从A地送到B地 | 跑男在指定地点提供现场协助 |
+| 地址数量 | 两个不同地址 | 一个地址 |
+| 询价参数 | fromAddress ≠ toAddress | fromAddress = toAddress |
+| sendType | "SEND" | "HELP" |
+| goodsType | 不传 | "ALLHELP" |
+| 创建订单 | 无需note | 必须传note描述帮忙内容 |
+
+### 执行步骤
+
+1. **获取必要信息**：帮忙地点、收件人电话、具体帮忙内容
+2. **调用帮忙询价接口**：
+   - 使用 `--orderType="help"` 参数
+   - fromAddress 和 toAddress 传相同地址
+3. **立即创建订单**：
+   - 必须传递 `--note` 参数描述具体帮忙内容
+4. **处理返回结果**：与跑腿配送相同，余额不足时需支付
+
+### 使用方法
+
+**Step 1: 帮忙服务询价**
+
+**Node.js 版本：**
+```bash
+node scripts/order-price.js --fromAddress="帮忙地点" --orderType="help"
+```
+
+**Python 版本：**
+```bash
+python uupt_delivery.py price --from-address="帮忙地点" --order-type="help"
+```
+
+**Step 2: 创建帮忙订单**
+
+⚠️ **重要**：帮忙订单必须传递 `--note` 参数，描述具体的帮忙内容。
+
+**Node.js 版本：**
+```bash
+# 微信渠道
+node scripts/create-order.js --priceToken="xxx" --receiverPhone="13800138000" --channel="wechat" --note="帮我搬一箱矿泉水到3楼"
+
+# 其他渠道
+node scripts/create-order.js --priceToken="xxx" --receiverPhone="13800138000" --note="帮我在郑州人民医院挂个号"
+```
+
+**Python 版本：**
+```bash
+# 微信渠道
+python uupt_delivery.py create --price-token="xxx" --receiver-phone="13800138000" --channel="wechat" --note="帮我搬一箱矿泉水到3楼"
+
+# 其他渠道
+python uupt_delivery.py create --price-token="xxx" --receiver-phone="13800138000" --note="帮我在郑州人民医院挂个号"
+```
+
+### 参数说明
+
+| 参数 (JS) | 参数 (Python) | 说明 | 必填 |
+|-----------|--------------|------|------|
+| `--fromAddress` | `--from-address` | 帮忙服务地点（完整地址） | 是 |
+| `--orderType` | `--order-type` | 订单类型，填入 `help` | 是 |
+| `--priceToken` | `--price-token` | 询价接口返回的 token | 是 |
+| `--receiverPhone` | `--receiver-phone` | 收件人手机号 | 是 |
+| `--note` | `--note` | 帮忙内容描述，描述具体需要跑男提供的帮助服务 | 是 |
+| `--channel` | `--channel` | 聊天渠道（wechat/feishu/dingtalk 等） | 否 |
+
+### 回复模板
+
+**询价回复：**
+```
+💰 帮忙服务费用查询结果：
+
+服务地点：{fromAddress}
+预估费用：{price/100} 元
+
+📝 如需下单，请提供收件人电话和具体帮忙内容。
+```
+
+**下单成功回复：**
+```
+帮忙订单创建成功！
+
+订单编号：{order_code}
+帮忙内容：{note}
+服务地点：{fromAddress}
+费用：{price/100} 元
+
+跑男正在赶来接单中，请保持电话畅通。
+```
+
+### 完整交互流程示例
+
+```
+用户：帮我在郑州人民医院挂个号
+
+Agent：
+1. 识别意图 → 帮忙服务(HELP)
+2. 确认信息：帮忙地点=郑州人民医院
+3. 执行帮忙询价 → node scripts/order-price.js --fromAddress="郑州人民医院" --orderType="help"
+4. 返回询价结果
+5. 请用户提供收件人电话
+
+用户：13800138000
+
+Agent：
+1. 执行创建订单 → node scripts/create-order.js --priceToken="xxx" --receiverPhone="13800138000" --note="帮我在郑州人民医院挂个号"
+2. 返回订单结果
+```
+
+---
+
 ## 配置管理
 
 配置分为两层：
@@ -644,17 +876,32 @@ python uupt_delivery.py track --order-code="UU123456789"
 ```javascript
 const { orderPrice, createOrder, orderDetail, cancelOrder, driverTrack } = require('./index');
 
-// 订单询价
+// 跑腿配送询价
 const priceResult = await orderPrice({
   fromAddress: '郑州市金水区农业路经三路交叉口',
   toAddress: '郑州市二七区德化街100号',
   cityName: '郑州市'
 });
 
-// 创建订单
+// 帮忙服务询价
+const helpPriceResult = await orderPrice({
+  fromAddress: '郑州市金水区农业路经三路交叉口',
+  toAddress: '郑州市金水区农业路经三路交叉口',
+  cityName: '郑州市',
+  orderType: 'help'
+});
+
+// 创建跑腿配送订单
 const orderResult = await createOrder({
   priceToken: priceResult.body.priceToken,
   receiverPhone: '13800138000'
+});
+
+// 创建帮忙服务订单
+const helpOrderResult = await createOrder({
+  priceToken: helpPriceResult.body.priceToken,
+  receiverPhone: '13800138000',
+  note: '帮我搬一箱矿泉水到3楼'
 });
 
 // 检查是否需要支付
@@ -673,17 +920,32 @@ const detailResult = await orderDetail({
 ```python
 from uupt_delivery import order_price, create_order, order_detail, cancel_order, driver_track
 
-# 订单询价
+# 跑腿配送询价
 price_result = order_price(
     from_address='郑州市金水区农业路经三路交叉口',
     to_address='郑州市二七区德化街100号',
     city_name='郑州市'
 )
 
-# 创建订单
+# 帮忙服务询价
+help_price_result = order_price(
+    from_address='郑州市金水区农业路经三路交叉口',
+    to_address='郑州市金水区农业路经三路交叉口',
+    city_name='郑州市',
+    order_type='help'
+)
+
+# 创建跑腿配送订单
 order_result = create_order(
     price_token=price_result['body']['priceToken'],
     receiver_phone='13800138000'
+)
+
+# 创建帮忙服务订单
+help_order_result = create_order(
+    price_token=help_price_result['body']['priceToken'],
+    receiver_phone='13800138000',
+    note='帮我搬一箱矿泉水到3楼'
 )
 
 # 检查是否需要支付
@@ -710,6 +972,7 @@ detail_result = order_detail(
 - **订单状态**：创建订单后请关注订单状态变化
 - **余额不足**：当返回 `[PAYMENT_REQUIRED]` 时，微信渠道用 `message` 工具发送 `{QRCODE_FILE}` 二维码图片附件；其他渠道直接发送 `{PAYMENT_URL}` 支付链接
 - **配置文件**：`defaults.json` 为内置凭证，请勿修改或删除
+- **帮忙订单**：帮忙订单必须传递 `--note` 参数，fromAddress 和 toAddress 相同；务必先确认帮忙内容再下单
 
 ## 相关链接
 

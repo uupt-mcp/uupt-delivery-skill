@@ -2,7 +2,7 @@
 
 /**
  * 创建订单脚本
- * 用法: node create-order.js --priceToken="询价token" --receiverPhone="收件人电话" [--channel="渠道"]
+ * 用法: node create-order.js --priceToken="询价token" --receiverPhone="收件人电话" [--channel="渠道"] [--note="帮忙内容"]
  */
 
 const { createOrder, formatPrice } = require('../index');
@@ -30,20 +30,25 @@ async function main() {
 📦 创建订单
 
 用法:
-  node create-order.js --priceToken="询价token" --receiverPhone="收件人电话" [--channel="渠道"]
+  node create-order.js --priceToken="询价token" --receiverPhone="收件人电话" [--channel="渠道"] [--note="帮忙内容"]
 
 参数:
   --priceToken     询价接口返回的 token（必填）
   --receiverPhone  收件人手机号（必填）
   --channel        聊天渠道（可选，如 wechat、feishu、dingtalk 等）
+  --note           帮忙内容描述（帮忙订单时必填，描述具体需要跑男提供的帮助服务）
 
 示例:
+  # 跑腿配送
   node create-order.js --priceToken="abc123xyz" --receiverPhone="13800138000"
   node create-order.js --priceToken="abc123xyz" --receiverPhone="13800138000" --channel="wechat"
+  # 帮忙服务
+  node create-order.js --priceToken="abc123xyz" --receiverPhone="13800138000" --note="帮我搬一箱矿泉水到3楼"
 
 注意:
   - priceToken 有时效性，请在询价后尽快创建订单
   - 如账户余额不足，将返回支付链接，用户可点击选择微信/支付宝支付
+  - 帮忙订单务必填写 --note 参数描述具体帮忙内容
 `);
     process.exit(1);
   }
@@ -52,7 +57,8 @@ async function main() {
     const result = await createOrder({
       priceToken: args.priceToken,
       receiverPhone: args.receiverPhone,
-      channel: args.channel || ''
+      channel: args.channel || '',
+      note: args.note || ''
     });
     
     if (result) {

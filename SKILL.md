@@ -219,22 +219,7 @@ node scripts/create-order.js --priceToken="xxx" --receiverPhone="13800138000" --
 骑手正在接单中，请保持电话畅通。
 ```
 
-**情况二：余额不足（`[PAYMENT_REQUIRED]` / `[RECHARGE_REQUIRED]`）**
-
-**帮帮订单**（`[RECHARGE_REQUIRED]`）：帮帮订单暂不支持第三方支付，需提示用户充值：
-
-关键输出：`ORDER_CODE`、`NOTE`、`HELP_ORDER_NO_THIRD_PARTY_PAY`。
-
-```
-帮帮订单暂不支持第三方支付。
-
-订单编号：{order_code}
-帮忙内容：{note}
-
-请通过 UU跑腿商户端或联系客服为账户充值后重新下单。
-```
-
-**跑腿配送**（`[PAYMENT_REQUIRED]`）：
+**情况二：余额不足（`[PAYMENT_REQUIRED]`）**
 
 关键输出：`ORDER_CODE`、`PAYMENT_URL`、`QRCODE_FILE`（仅 `--channel="wechat"` 时）。
 
@@ -393,7 +378,7 @@ detail = order_detail(order_code=order['body']['orderCode'])
 - **询价有效期**：priceToken 有时效性，建议获取后尽快创建订单
 - **价格单位**：API 返回的价格单位是分，展示时除以 100 转换为元
 - **地址完整性**：地址越完整配送越准确。未指定城市默认"郑州市"
-- **余额不足**：`[PAYMENT_REQUIRED]` 时，微信渠道用 `message` 发送二维码图片附件，其他渠道发送支付链接；`[RECHARGE_REQUIRED]` 时，帮帮订单暂不支持第三方支付，提示用户充值后重新下单
+- **余额不足**：`[PAYMENT_REQUIRED]` 时，微信渠道用 `message` 发送二维码图片附件，其他渠道发送支付链接
 - **帮忙订单**：必须传 `--note` 参数，fromAddress = toAddress；务必先确认帮忙内容再下单
 - **配置文件**：`defaults.json` 为内置凭证，请勿修改或删除
 

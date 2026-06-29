@@ -4,6 +4,38 @@
 
 Skill 让 AI 助手学会新技能。通过安装本 Skill，AI 助手可以获得同城即时配送和现场帮忙服务的专业能力，在对话中自动识别用户的需求并调用对应的接口来完成任务。
 
+## 安装方式
+
+### 从 ClawHub 安装（推荐）
+
+在 ClawHub 应用市场一键安装：
+
+```bash
+clawhub install uupt-delivery
+```
+
+> 提示：如果未安装 ClawHub CLI，可用 `npx clawhub@latest install uupt-delivery` 直接运行。
+
+也可以访问 [ClawHub](https://clawhub.ai/) 网站搜索 `uupt-delivery`，下载 ZIP 包后解压到 Skills 目录。
+
+### 从 GitHub 安装
+
+克隆仓库并安装依赖：
+
+```bash
+# 克隆项目
+git clone https://github.com/uupt-mcp/uupt-delivery-skill.git
+cd uupt-delivery-skill
+
+# 安装 Node.js 依赖
+npm install
+
+# 或安装 Python 依赖
+pip install -r requirements.txt
+```
+
+安装完成后，首次使用会自动引导注册，详见 [首次使用](#首次使用)。
+
 ## 核心能力
 
 | 能力 | 说明 | 适用场景 |
@@ -157,5 +189,7 @@ node scripts/driver-track.js --orderCode="UU123456789"
 
 ## 相关链接
 
+- [ClawHub 应用市场](https://clawhub.ai/)
+- [GitHub 仓库](https://github.com/uupt-mcp/uupt-delivery-skill)
 - [UU跑腿开放平台](https://open.uupt.com)
 - [API 文档](https://open.uupt.com/docs)

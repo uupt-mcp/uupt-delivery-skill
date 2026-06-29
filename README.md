@@ -189,7 +189,6 @@ node scripts/driver-track.js --orderCode="UU123456789"
 
 ## 相关链接
 
-- [ClawHub 应用市场](https://clawhub.ai/)
+- [ClawHub 应用市场](https://clawhub.ai/uupt-mcp/skills/uupt-delivery)
 - [GitHub 仓库](https://github.com/uupt-mcp/uupt-delivery-skill)
-- [UU跑腿开放平台](https://open.uupt.com)
-- [API 文档](https://open.uupt.com/docs)
+- [UU跑腿开放平台](https://open.uupt.com/#/development/agentSkill/quickStart)

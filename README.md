@@ -25,7 +25,7 @@ clawhub install uupt-delivery
 ```bash
 # 克隆项目
 git clone https://github.com/uupt-mcp/uupt-delivery-skill.git
-cd uupt-delivery-skill
+cd uupt-delivery-skill/uupt-delivery
 
 # 安装 Node.js 依赖
 npm install

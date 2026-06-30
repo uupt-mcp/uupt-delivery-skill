@@ -20,15 +20,16 @@ clawhub install uupt-delivery
 
 ### 从 GitHub 安装
 
-从 [GitHub Releases](https://github.com/uupt-mcp/uupt-delivery-skill/releases) 下载最新版本，解压到 Agent 的 Skill 目录后安装依赖。
+从 [GitHub Releases](https://github.com/uupt-mcp/uupt-delivery-skill/releases) 下载最新版本的 `uupt-delivery.zip`，解压到 Agent 的 Skill 目录后安装依赖。
 
 以 **Qoder** 为例（Skill 目录为 `~/.qoder/skills/`）：
 
 ```bash
-# 克隆到临时目录，仅保留 skill 子目录
-git clone https://github.com/uupt-mcp/uupt-delivery-skill.git /tmp/uupt-delivery-skill
-mv /tmp/uupt-delivery-skill/uupt-delivery ~/.qoder/skills/uupt-delivery
-rm -rf /tmp/uupt-delivery-skill
+# 下载最新版本
+wget https://github.com/uupt-mcp/uupt-delivery-skill/releases/latest/download/uupt-delivery.zip
+
+# 解压到 Skill 目录
+unzip uupt-delivery.zip -d ~/.qoder/skills/uupt-delivery
 
 # 进入目录安装依赖
 cd ~/.qoder/skills/uupt-delivery

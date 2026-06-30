@@ -6,7 +6,7 @@ Skill 让 AI 助手学会新技能。通过安装本 Skill，AI 助手可以获�
 
 ## 安装方式
 
-### 从 ClawHub 安装（推荐）
+### OpenClaw 用户：从 ClawHub 安装（推荐）
 
 在 ClawHub 应用市场一键安装：
 
@@ -20,19 +20,25 @@ clawhub install uupt-delivery
 
 ### 从 GitHub 安装
 
-克隆仓库并安装依赖：
+从 [GitHub Releases](https://github.com/uupt-mcp/uupt-delivery-skill/releases) 下载最新版本，解压到 Agent 的 Skill 目录后安装依赖。
+
+以 **Qoder** 为例（Skill 目录为 `~/.qoder/skills/`）：
 
 ```bash
-# 克隆项目
-git clone https://github.com/uupt-mcp/uupt-delivery-skill.git
-cd uupt-delivery-skill/uupt-delivery
+# 克隆到临时目录，仅保留 skill 子目录
+git clone https://github.com/uupt-mcp/uupt-delivery-skill.git /tmp/uupt-delivery-skill
+mv /tmp/uupt-delivery-skill/uupt-delivery ~/.qoder/skills/uupt-delivery
+rm -rf /tmp/uupt-delivery-skill
 
-# 安装 Node.js 依赖
+# 进入目录安装依赖
+cd ~/.qoder/skills/uupt-delivery
 npm install
 
 # 或安装 Python 依赖
 pip install -r requirements.txt
 ```
+
+> 不同 Agent 的 Skill 目录位置不同，请根据实际使用的 Agent 调整路径。例如 **Claude Code** 的 Skill 目录为 `~/.claude/skills/`。
 
 安装完成后，首次使用会自动引导注册，详见 [首次使用](#首次使用)。
 

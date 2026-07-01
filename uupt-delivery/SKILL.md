@@ -2,7 +2,7 @@
 name: uupt-delivery
 description: >-
   UU跑腿同城配送服务。支持跑腿配送和帮忙服务两种订单类型，包括订单询价、发单下单、查询订单、取消订单、跑男实时追踪。当用户表达任何与"送"、"取"、"寄"、"跑腿"、"发单"、"配送"、"帮忙"、"帮我"、"代取号"、"代排队"、"搬东西"等配送或帮忙需求时使用此skill。
-version: 1.0.6
+version: 1.0.7
 metadata:
   openclaw:
     requires:

@@ -186,7 +186,9 @@ async function main() {
 
     console.log('\n[UPDATE_SUCCESS]');
     console.log(`VERSION=${newVersion}`);
+    console.log(`SKILL_FILE=${path.join(SKILL_DIR, 'SKILL.md')}`);
     console.log(`✅ skill 已更新到 ${newVersion}，用户配置不受影响，无需重新注册。`);
+    console.log('提示: 新版脚本对后续命令立即生效。Agent 请重新读取上方 SKILL_FILE 指向的 SKILL.md，本会话后续操作按新版使用说明执行。');
 
     if (npmResult.status !== 0) {
       console.log('\n[UPDATE_DEPS_FAILED]');

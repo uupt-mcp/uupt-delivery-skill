@@ -783,7 +783,9 @@ def self_update(check_only: bool = False, force: bool = False,
 
         print("\n[UPDATE_SUCCESS]")
         print(f"VERSION={new_version}")
+        print(f"SKILL_FILE={SKILL_DIR / 'SKILL.md'}")
         print(f"[成功] skill 已更新到 {new_version}，用户配置不受影响，无需重新注册。")
+        print("提示: 新版脚本对后续命令立即生效。Agent 请重新读取上方 SKILL_FILE 指向的 SKILL.md，本会话后续操作按新版使用说明执行。")
 
         if not deps_ok:
             print("\n[UPDATE_DEPS_FAILED]")

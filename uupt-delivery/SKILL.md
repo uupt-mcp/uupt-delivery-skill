@@ -439,7 +439,7 @@ UPDATE_COMMAND=node scripts/self-update.js
 
 | 标记 | 含义 | Agent 处理 |
 |------|------|-----------|
-| `[UPDATE_SUCCESS]` | 更新成功 | 告知用户已更新到 `VERSION=` 的版本 |
+| `[UPDATE_SUCCESS]` | 更新成功 | 告知用户已更新到 `VERSION=` 的版本；**立即重新读取 `SKILL_FILE=` 指向的 SKILL.md**，本会话后续操作按新版使用说明执行（脚本已自动是新版，无需重启会话） |
 | `[AUTO_UPDATE_ENABLED]` | 已开启自动更新 | 告知用户之后新版本将自动升级 |
 | `[AUTO_UPDATE_DISABLED]` | 已关闭自动更新 | 告知用户之后会先询问再更新 |
 | `[UPDATE_DEPS_FAILED]` | 代码已更新但依赖安装失败 | 在 skill 目录执行 `npm install` 后告知用户 |

@@ -8,7 +8,7 @@
  *   带图片验证: node register.js --mobile="手机号" --imageCode="图片验证码"
  */
 
-const { getPublicIp, sendSmsCode, auth, getConfig } = require('../index');
+const { getPublicIp, sendSmsCode, auth, getConfig, CONFIG_FILE } = require('../index');
 
 // 解析命令行参数
 function parseArgs() {
@@ -73,6 +73,16 @@ async function main() {
       });
       
       if (authResult && authResult.body && authResult.body.openId) {
+        if (authResult.configSaved === false) {
+          console.log('\n[CONFIG_SAVE_FAILED]');
+          console.error('❌ 授权成功，但 openId 保存到配置文件失败，需要 Agent 协助保存。');
+          console.log(`OPEN_ID=${authResult.body.openId}`);
+          console.log(`CONFIG_FILE=${CONFIG_FILE}`);
+          console.log('\n💡 Agent 请直接使用文件写入工具，将以下 JSON 内容写入上述 CONFIG_FILE 路径（目录不存在则先创建）：');
+          console.log(`   {"openId": "${authResult.body.openId}"}`);
+          console.log('   写入成功后即完成注册，可继续执行用户最初的功能，无需用户手动操作。');
+          process.exit(1);
+        }
         console.log('\n[REGISTRATION_SUCCESS]');
         console.log(`✅ 注册成功！openId 已保存到配置文件。`);
         console.log(`   openId: ${authResult.body.openId}`);

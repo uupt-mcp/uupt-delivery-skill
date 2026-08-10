@@ -14,7 +14,7 @@ UU跑腿同城配送服务 Agent Skill (Python 版本)
 
 配置方式：
     1. 预制配置：defaults.json（appId、appSecret，随 Skill 分发）
-    2. 用户配置：config.json（openId，注册后自动保存）
+    2. 用户配置：~/.uupt-delivery/config.json（openId，注册后自动保存）
     3. 环境变量：UUPT_OPEN_ID（可选覆盖）
 """
 
@@ -34,8 +34,9 @@ except ImportError:
     print("[错误] 缺少 requests 库，请运行: pip install requests")
     sys.exit(1)
 
-# 配置文件路径
-CONFIG_FILE = Path(__file__).parent / "config.json"
+# 配置文件保存在用户主目录，不受 skill 更新/重装影响，且始终可写
+CONFIG_DIR = Path.home() / ".uupt-delivery"
+CONFIG_FILE = CONFIG_DIR / "config.json"
 DEFAULTS_FILE = Path(__file__).parent / "defaults.json"
 
 # 默认 API 地址
@@ -69,6 +70,7 @@ def save_config(config: dict) -> bool:
     try:
         existing = read_config()
         merged = {**existing, **config}
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
             json.dump(merged, f, indent=2, ensure_ascii=False)
         print(f"[成功] 配置已保存到: {CONFIG_FILE}")
@@ -254,8 +256,11 @@ def user_auth(user_mobile: str, user_ip: str, sms_code: str) -> dict:
     result = post_unauthorized_request(biz, "user/unauthorized/auth")
     
     if result and result.get("body") and result["body"].get("openId"):
-        save_config({"openId": result["body"]["openId"]})
-        print("[成功] 授权成功，openId 已保存")
+        result["configSaved"] = save_config({"openId": result["body"]["openId"]})
+        if result["configSaved"]:
+            print("[成功] 授权成功，openId 已保存")
+        else:
+            print("[警告] 授权成功，但 openId 保存失败")
     
     return result
 
@@ -420,13 +425,13 @@ def format_create_result(result: dict, channel: str = "") -> None:
                 qrcode_url = f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={quote(payment_url, safe='')}"
                 
                 try:
-                    script_dir = os.path.dirname(os.path.abspath(__file__))
-                    qr_file_name = "payment_qrcode.png"
-                    qr_file_path = os.path.join(script_dir, qr_file_name)
+                    # 写入用户主目录下的配置目录，skill 安装目录可能只读
+                    qr_file_path = str(CONFIG_DIR / "payment_qrcode.png")
                     
                     response = requests.get(qrcode_url, timeout=10)
                     response.raise_for_status()
                     
+                    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
                     with open(qr_file_path, 'wb') as f:
                         f.write(response.content)
                     
@@ -600,6 +605,16 @@ def main():
                 auth_result = user_auth(args.mobile, user_ip, args.sms_code)
                 
                 if auth_result and auth_result.get("body") and auth_result["body"].get("openId"):
+                    if auth_result.get("configSaved") is False:
+                        open_id = auth_result["body"]["openId"]
+                        print("\n[CONFIG_SAVE_FAILED]")
+                        print("[错误] 授权成功，但 openId 保存到配置文件失败，需要 Agent 协助保存。")
+                        print(f"OPEN_ID={open_id}")
+                        print(f"CONFIG_FILE={CONFIG_FILE}")
+                        print("\n[提示] Agent 请直接使用文件写入工具，将以下 JSON 内容写入上述 CONFIG_FILE 路径（目录不存在则先创建）：")
+                        print(f'   {{"openId": "{open_id}"}}')
+                        print("   写入成功后即完成注册，可继续执行用户最初的功能，无需用户手动操作。")
+                        sys.exit(1)
                     print("\n[REGISTRATION_SUCCESS]")
                     print(f"[成功] 注册成功！openId 已保存到配置文件。")
                     print(f"   openId: {auth_result['body']['openId']}")

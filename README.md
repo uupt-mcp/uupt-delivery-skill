@@ -93,7 +93,7 @@ export UUPT_OPEN_ID=你的openId
 ```
 
 **配置文件方式：**
-创建 `config.json` 文件：
+创建 `~/.uupt-delivery/config.json` 文件：
 ```json
 {
   "appId": "你的appId",
@@ -160,8 +160,8 @@ node scripts/driver-track.js --orderCode="UU123456789"
 
 | 配置文件 | 内容 | 说明 |
 |---------|------|------|
-| `defaults.json` | appId、appSecret、apiUrl | 内置应用凭证，随 Skill 分发，**请勿修改** |
-| `config.json` | openId（或完整凭证） | 用户级配置，注册成功后自动生成 |
+| `defaults.json`（skill 目录） | appId、appSecret、apiUrl | 内置应用凭证，随 Skill 分发，**请勿修改** |
+| `~/.uupt-delivery/config.json` | openId（或完整凭证） | 用户级配置，注册成功后自动生成，保存在用户主目录，不受 Skill 更新/重装影响 |
 
 配置优先级（从高到低）：环境变量 > config.json > defaults.json
 

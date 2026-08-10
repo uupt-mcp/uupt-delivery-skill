@@ -86,7 +86,7 @@ UU跑腿同城配送服务为用户提供便捷的同城即时配送能力和现
 
 ### Step 1A: 开发者模式（A）
 
-请用户提供 `appId`、`appSecret`、`openId`，写入 `config.json`：
+请用户提供 `appId`、`appSecret`、`openId`，写入 `~/.uupt-delivery/config.json`：
 
 ```json
 { "appId": "...", "appSecret": "...", "openId": "..." }
@@ -118,6 +118,7 @@ node scripts/register.js --mobile="手机号" --smsCode="用户输入的验证�
 处理结果：
 - `[REGISTRATION_SUCCESS]` → 注册成功，openId 已保存，**立即继续执行用户最初的功能**
 - `[REGISTRATION_FAILED]` → 从 Step 2 重试（无需重新输入手机号），最多 3 次
+- `[CONFIG_SAVE_FAILED]` → 授权已成功但脚本写配置文件失败。输出中包含 `OPEN_ID=` 和 `CONFIG_FILE=` 两个字段，**Agent 应直接用文件写入工具将 `{"openId": "<OPEN_ID>"}` 写入 CONFIG_FILE 路径**（目录不存在则先创建），然后继续执行用户最初的功能；仅当 Agent 也无法写入时，才提示用户设置环境变量 `UUPT_OPEN_ID`
 
 ---
 
@@ -308,8 +309,8 @@ node scripts/driver-track.js --orderCode="UU123456789"
 
 | 文件 | 内容 | 说明 |
 |------|------|------|
-| `defaults.json` | appId、appSecret、apiUrl | 内置凭证，**请勿修改** |
-| `config.json` | openId（或完整凭证） | 注册后自动生成或手动创建 |
+| `defaults.json`（skill 目录） | appId、appSecret、apiUrl | 内置凭证，**请勿修改** |
+| `~/.uupt-delivery/config.json` | openId（或完整凭证） | 注册后自动生成或手动创建，保存在用户主目录，不受 skill 更新影响 |
 
 ### 环境变量
 
@@ -325,7 +326,6 @@ node scripts/driver-track.js --orderCode="UU123456789"
 | 环境 | URL |
 |------|-----|
 | 生产环境 | `https://api-open.uupt.com/openapi/v3/` |
-| 测试环境 | `http://api-open.test.uupt.com/openapi/v3/` |
 
 ---
 

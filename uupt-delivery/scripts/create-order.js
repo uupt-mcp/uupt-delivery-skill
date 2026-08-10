@@ -5,7 +5,7 @@
  * 用法: node create-order.js --priceToken="询价token" --receiverPhone="收件人电话" [--channel="渠道"] [--note="帮忙内容"]
  */
 
-const { createOrder, formatPrice } = require('../index');
+const { createOrder, formatPrice, CONFIG_DIR } = require('../index');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
@@ -84,11 +84,11 @@ async function main() {
             const qrcodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(paymentUrl)}`;
             
             try {
-              const projectRoot = path.dirname(__dirname);
-              const qrFileName = 'payment_qrcode.png';
-              const qrFilePath = path.join(projectRoot, qrFileName);
+              // 写入用户主目录下的配置目录，skill 安装目录可能只读
+              const qrFilePath = path.join(CONFIG_DIR, 'payment_qrcode.png');
               
               const response = await axios.get(qrcodeUrl, { responseType: 'arraybuffer', timeout: 10000 });
+              fs.mkdirSync(CONFIG_DIR, { recursive: true });
               fs.writeFileSync(qrFilePath, response.data);
               
               console.log('\n💳 支付信息：');

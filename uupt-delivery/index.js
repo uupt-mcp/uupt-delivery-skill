@@ -1,10 +1,12 @@
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const axios = require('axios');
 const crypto = require('crypto');
 
-// 配置文件路径
-const CONFIG_FILE = path.join(__dirname, 'config.json');
+// 配置文件保存在用户主目录，不受 skill 更新/重装影响，且始终可写
+const CONFIG_DIR = path.join(os.homedir(), '.uupt-delivery');
+const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 const DEFAULTS_FILE = path.join(__dirname, 'defaults.json');
 
 /**
@@ -44,6 +46,7 @@ function saveConfig(config) {
   try {
     const existing = readConfig();
     const merged = { ...existing, ...config };
+    fs.mkdirSync(CONFIG_DIR, { recursive: true });
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(merged, null, 2), 'utf8');
     console.log('配置已保存到:', CONFIG_FILE);
     return true;
@@ -276,8 +279,12 @@ async function auth(params) {
   const result = await postUnauthorizedRequest(biz, 'user/unauthorized/auth');
   
   if (result && result.body && result.body.openId) {
-    saveConfig({ openId: result.body.openId });
-    console.log('✅ 授权成功，openId 已保存');
+    result.configSaved = saveConfig({ openId: result.body.openId });
+    if (result.configSaved) {
+      console.log('✅ 授权成功，openId 已保存');
+    } else {
+      console.error('⚠️ 授权成功，但 openId 保存失败');
+    }
   }
   
   return result;
@@ -434,6 +441,8 @@ function formatPrice(priceInFen) {
 
 // 导出函数
 module.exports = {
+  CONFIG_DIR,
+  CONFIG_FILE,
   readConfig,
   readDefaults,
   saveConfig,

@@ -1,20 +1,23 @@
 # UU跑腿同城配送服务 Skill
 
-[![Version](https://img.shields.io/badge/version-1.0.6-blue.svg)](./SKILL.md)
+[![Version](https://img.shields.io/badge/version-1.0.8-blue.svg)](./uupt-delivery/SKILL.md)
 
 Skill 让 AI 助手学会新技能。通过安装本 Skill，AI 助手可以获得同城即时配送和现场帮忙服务的专业能力，在对话中自动识别用户的需求并调用对应的接口来完成任务。
 
 ## 安装方式
 
-### 从 GitHub 安装
+### 从官方下载源安装
 
-从 [GitHub Releases](https://github.com/uupt-mcp/uupt-delivery-skill/releases) 下载最新版本的 `uupt-delivery.zip`，解压到 Agent 的 Skill 目录后安装依赖。
+从官方下载源获取最新版本的 `uupt-delivery.zip`，解压到 Agent 的 Skill 目录后安装依赖：
+
+- 官方地址：`https://otherfiles.uupt.com/skills/uupt-delivery.zip`
+- 备用地址：[GitHub Releases](https://github.com/uupt-mcp/uupt-delivery-skill/releases)
 
 以 **Qoder** 为例（Skill 目录为 `~/.qoder/skills/`）：
 
 ```bash
 # 下载最新版本
-wget https://github.com/uupt-mcp/uupt-delivery-skill/releases/latest/download/uupt-delivery.zip
+wget https://otherfiles.uupt.com/skills/uupt-delivery.zip
 
 # 解压到 Skill 目录
 unzip uupt-delivery.zip -d ~/.qoder/skills/uupt-delivery
@@ -42,6 +45,27 @@ clawhub install uupt-delivery
 也可以访问 [ClawHub](https://clawhub.ai/) 网站搜索 `uupt-delivery`，下载 ZIP 包后解压到 Skills 目录。
 
 安装完成后，首次使用会自动引导注册，详见 [首次使用](#首次使用)。
+
+## 版本更新
+
+Skill 内置自动更新检测：业务功能执行完成后会静默检查新版本（每 24 小时最多一次，失败不影响主功能）。发现新版本时输出 `[UPDATE_AVAILABLE]` 标记，AI 助手会在完成当前任务后询问你是否更新，经你同意后自动执行升级。
+
+也可以手动检查或更新：
+
+```bash
+# 检查是否有新版本（不更新）
+node scripts/self-update.js --check
+
+# 更新到最新版本
+node scripts/self-update.js
+# 或 Python: python uupt_delivery.py self-update
+```
+
+更新说明：
+
+- 用户配置（`~/.uupt-delivery/config.json`）保存在用户主目录，更新后**无需重新注册**
+- 更新前旧版本自动备份到 `~/.uupt-delivery/backup/`，失败时自动还原
+- 设置环境变量 `UUPT_SKIP_UPDATE_CHECK=1` 可禁用自动检测
 
 ## 核心能力
 
@@ -173,6 +197,8 @@ node scripts/driver-track.js --orderCode="UU123456789"
 | `UUPT_APP_SECRET` | 应用密钥 | 开发者模式必填 |
 | `UUPT_OPEN_ID` | 用户唯一标识 | 是 |
 | `UUPT_API_URL` | API 地址 | 否，默认生产环境 |
+| `UUPT_SKIP_UPDATE_CHECK` | 设为 `1` 时禁用自动更新检测 | 否 |
+| `UUPT_UPDATE_LATEST_URL` | 版本信息文件地址（用于测试环境） | 否，默认官方地址 |
 
 ### API 环境
 

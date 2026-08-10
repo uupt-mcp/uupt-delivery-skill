@@ -14,6 +14,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verify version consistency
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PKG_VERSION=$(node -p "require('./uupt-delivery/package.json').version")
+          SKILL_VERSION=$(grep -m1 '^version:' uupt-delivery/SKILL.md | awk '{print $2}')
+          echo "tag=$TAG_VERSION package.json=$PKG_VERSION SKILL.md=$SKILL_VERSION"
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ] || [ "$TAG_VERSION" != "$SKILL_VERSION" ]; then
+            echo "::error::版本号不一致：tag($TAG_VERSION) / package.json($PKG_VERSION) / SKILL.md($SKILL_VERSION) 必须相同"
+            exit 1
+          fi
+
       - name: Package skill
         run: |
           cd uupt-delivery

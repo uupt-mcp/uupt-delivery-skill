@@ -2,7 +2,7 @@
 name: uupt-delivery
 description: >-
   UU跑腿同城配送服务。支持跑腿配送和帮忙服务两种订单类型，包括订单询价、发单下单、查询订单、取消订单、跑男实时追踪。当用户表达任何与"送"、"取"、"寄"、"跑腿"、"发单"、"配送"、"帮忙"、"帮我"、"代取号"、"代排队"、"搬东西"等配送或帮忙需求时使用此skill。
-version: 1.0.7
+version: 1.0.8
 metadata:
   openclaw:
     requires:
@@ -59,7 +59,7 @@ UU跑腿同城配送服务为用户提供便捷的同城即时配送能力和现
 
 **判断原则**：核心是从A到B传递物品 → 配送；核心是在某地点提供现场协助 → 帮忙。
 
-**六大场景**：
+**七大场景**：
 
 | 场景 | 触发条件 | 所需信息 |
 |------|---------|---------|
@@ -69,6 +69,7 @@ UU跑腿同城配送服务为用户提供便捷的同城即时配送能力和现
 | 场景三：查询订单 | 用户想看订单状态 | 订单编号 |
 | 场景四：取消订单 | 用户要取消订单 | 订单编号 |
 | 场景五：跑男追踪 | 用户想看跑男位置 | 订单编号 |
+| 场景六：版本更新 | 执行脚本输出 `[UPDATE_AVAILABLE]` | 用户确认是否更新 |
 
 ---
 
@@ -303,6 +304,55 @@ node scripts/driver-track.js --orderCode="UU123456789"
 
 ---
 
+## 场景六：版本更新
+
+skill 在业务功能执行完成后会自动检测新版本（每 24 小时最多一次网络请求，静默进行，绝不影响主功能）。
+
+### 触发条件
+
+任意脚本输出末尾出现 `[UPDATE_AVAILABLE]` 标记：
+
+```
+[UPDATE_AVAILABLE]
+CURRENT_VERSION=1.0.8
+LATEST_VERSION=1.1.0
+RELEASE_NOTES=本次更新内容简述
+UPDATE_COMMAND=node scripts/self-update.js
+```
+
+### 处理规则
+
+1. **先完成用户当前的任务**（询价、下单等主流程不受更新提示影响，正常输出结果）
+2. 主任务完成后，附带告知用户：「skill 有新版本 {LATEST_VERSION}（当前 {CURRENT_VERSION}），更新内容：{RELEASE_NOTES}，是否更新？」
+3. **用户明确同意后**才执行更新，**严禁未经用户确认自动更新**：
+
+```bash
+node scripts/self-update.js
+```
+
+（Python 环境：`python uupt_delivery.py self-update`）
+
+4. 根据更新脚本的输出标记处理结果：
+
+| 标记 | 含义 | Agent 处理 |
+|------|------|-----------|
+| `[UPDATE_SUCCESS]` | 更新成功 | 告知用户已更新到 `VERSION=` 的版本 |
+| `[UPDATE_DEPS_FAILED]` | 代码已更新但依赖安装失败 | 在 skill 目录执行 `npm install` 后告知用户 |
+| `[UPDATE_FAILED]` | 更新失败（已自动还原旧版本） | 告知用户失败原因 `REASON=`，可引导手动下载 https://otherfiles.uupt.com/skills/uupt-delivery.zip 重新安装 |
+| `[ALREADY_LATEST]` | 已是最新版本 | 告知用户无需更新 |
+
+5. 更新不影响用户配置（`~/.uupt-delivery/`），**无需重新注册**；旧版本自动备份到 `~/.uupt-delivery/backup/`
+
+### 手动检查更新
+
+用户主动询问"skill 有没有新版本"时执行（仅检查不更新）：
+
+```bash
+node scripts/self-update.js --check
+```
+
+---
+
 ## 配置管理
 
 配置分为两层，优先级：**环境变量 > config.json > defaults.json**。
@@ -320,6 +370,7 @@ node scripts/driver-track.js --orderCode="UU123456789"
 | `UUPT_APP_SECRET` | 应用密钥 |
 | `UUPT_OPEN_ID` | 用户唯一标识 |
 | `UUPT_API_URL` | API 地址（可选，默认生产环境） |
+| `UUPT_SKIP_UPDATE_CHECK` | 设为 `1` 时禁用自动更新检测（可选） |
 
 ### API 环境
 
@@ -381,6 +432,7 @@ detail = order_detail(order_code=order['body']['orderCode'])
 - **余额不足**：`[PAYMENT_REQUIRED]` 时，微信渠道用 `message` 发送二维码图片附件，其他渠道发送支付链接
 - **帮忙订单**：必须传 `--note` 参数，fromAddress = toAddress；务必先确认帮忙内容再下单
 - **配置文件**：`defaults.json` 为内置凭证，请勿修改或删除
+- **版本更新**：输出 `[UPDATE_AVAILABLE]` 时先完成当前任务，再询问用户；用户同意后才执行 `node scripts/self-update.js`，严禁自动静默更新
 
 ## 相关链接
 

@@ -1,6 +1,6 @@
 {
   "name": "uupt-delivery-skill",
-  "version": "1.0.0",
+  "version": "1.0.8",
   "description": "UU跑腿同城配送服务，提供订单询价、发单、订单管理、跑男追踪等功能",
   "main": "index.js",
   "scripts": {
@@ -10,7 +10,8 @@
     "create": "node scripts/create-order.js",
     "detail": "node scripts/order-detail.js",
     "cancel": "node scripts/cancel-order.js",
-    "track": "node scripts/driver-track.js"
+    "track": "node scripts/driver-track.js",
+    "self-update": "node scripts/self-update.js"
   },
   "keywords": [
     "uupt",
@@ -22,6 +23,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "adm-zip": "^0.6.0",
     "axios": "^1.19.0"
   }
 }

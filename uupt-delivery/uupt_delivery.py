@@ -25,6 +25,9 @@ import hashlib
 import time
 import argparse
 import tempfile
+import shutil
+import subprocess
+import zipfile
 from pathlib import Path
 from urllib.parse import quote
 
@@ -41,6 +44,14 @@ DEFAULTS_FILE = Path(__file__).parent / "defaults.json"
 
 # 默认 API 地址
 DEFAULT_API_URL = "https://api-open.uupt.com/openapi/v3/"
+
+# skill 安装目录与版本更新配置
+SKILL_DIR = Path(__file__).parent
+UPDATE_LATEST_URL = os.environ.get("UUPT_UPDATE_LATEST_URL") or "https://otherfiles.uupt.com/skills/uupt-delivery-latest.json"
+UPDATE_DEFAULT_ZIP_URL = "https://otherfiles.uupt.com/skills/uupt-delivery.zip"
+UPDATE_CACHE_FILE = CONFIG_DIR / "update-check.json"
+# 网络检测与提醒的最小间隔：24 小时（毫秒，与 Node 版共用同一缓存文件）
+UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000
 
 
 def read_config() -> dict:
@@ -533,6 +544,240 @@ def format_track_result(result: dict) -> None:
             print(f"   距离目的地: {data['distance']} 米")
 
 
+# ============ 版本更新 ============
+
+def get_current_version() -> str:
+    """读取当前安装的版本号（以 package.json 为唯一来源）"""
+    try:
+        with open(SKILL_DIR / "package.json", "r", encoding="utf-8") as f:
+            return json.load(f).get("version") or "0.0.0"
+    except Exception:
+        return "0.0.0"
+
+
+def compare_versions(a: str, b: str) -> int:
+    """比较语义化版本号，a > b 返回 1，a < b 返回 -1，相等返回 0"""
+    def parse(v: str):
+        parts = []
+        for seg in str(v).lstrip("vV").split("."):
+            try:
+                parts.append(int(seg))
+            except ValueError:
+                parts.append(0)
+        return parts
+
+    pa, pb = parse(a), parse(b)
+    for i in range(max(len(pa), len(pb))):
+        diff = (pa[i] if i < len(pa) else 0) - (pb[i] if i < len(pb) else 0)
+        if diff != 0:
+            return 1 if diff > 0 else -1
+    return 0
+
+
+def read_update_cache() -> dict:
+    try:
+        if UPDATE_CACHE_FILE.exists():
+            with open(UPDATE_CACHE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+
+def write_update_cache(cache: dict) -> None:
+    try:
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        with open(UPDATE_CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(cache, f, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+
+
+def fetch_latest_info(timeout: float = 3) -> dict:
+    """从版本发布服务器获取最新版本信息"""
+    response = requests.get(UPDATE_LATEST_URL, timeout=timeout)
+    response.raise_for_status()
+    data = response.json()
+    if not data.get("version"):
+        raise ValueError("版本信息文件格式无效（缺少 version 字段）")
+    return {
+        "version": str(data["version"]),
+        "zipUrl": data.get("zipUrl") or UPDATE_DEFAULT_ZIP_URL,
+        "notes": data.get("notes") or "",
+    }
+
+
+def maybe_notify_update() -> None:
+    """更新检测：带缓存节流（24h 最多请求一次），发现新版本时输出 [UPDATE_AVAILABLE] 标记。
+    任何异常都静默忽略，绝不影响主功能。
+    """
+    if os.environ.get("UUPT_SKIP_UPDATE_CHECK") == "1":
+        return
+    try:
+        now = int(time.time() * 1000)
+        cache = read_update_cache()
+
+        if not cache.get("lastCheck") or now - cache["lastCheck"] > UPDATE_CHECK_INTERVAL_MS:
+            # 无论成功失败都记录 lastCheck，避免服务器不可达时每次运行都发起网络请求
+            cache["lastCheck"] = now
+            try:
+                latest = fetch_latest_info()
+                cache.update({
+                    "latestVersion": latest["version"],
+                    "zipUrl": latest["zipUrl"],
+                    "notes": latest["notes"],
+                })
+            except Exception:
+                pass
+            write_update_cache(cache)
+
+        current = get_current_version()
+        has_newer = cache.get("latestVersion") and compare_versions(cache["latestVersion"], current) > 0
+        notified_recently = cache.get("lastNotified") and now - cache["lastNotified"] <= UPDATE_CHECK_INTERVAL_MS
+
+        if has_newer and not notified_recently:
+            cache["lastNotified"] = now
+            write_update_cache(cache)
+            print("\n[UPDATE_AVAILABLE]")
+            print(f"CURRENT_VERSION={current}")
+            print(f"LATEST_VERSION={cache['latestVersion']}")
+            if cache.get("notes"):
+                print(f"RELEASE_NOTES={' '.join(str(cache['notes']).splitlines())}")
+            print("UPDATE_COMMAND=python uupt_delivery.py self-update")
+            print("提示: skill 有新版本。请先完成用户当前任务，再询问用户是否更新（未经用户同意不要执行更新）。")
+    except Exception:
+        pass
+
+
+def _copy_dir(src: Path, dest: Path, exclude_top_dirs: list) -> None:
+    """递归复制目录，排除顶层的指定目录（如 node_modules）"""
+    shutil.copytree(
+        src, dest,
+        ignore=shutil.ignore_patterns(*exclude_top_dirs) if exclude_top_dirs else None,
+        dirs_exist_ok=True,
+    )
+
+
+def _print_update_failed(reason: str) -> None:
+    print("\n[UPDATE_FAILED]")
+    print(f"REASON={reason}")
+    print(f"\n[提示] 可手动下载最新安装包重新安装: {UPDATE_DEFAULT_ZIP_URL}")
+    print(f"   解压覆盖到 skill 目录 ({SKILL_DIR}) 后执行 npm install 即可。")
+
+
+def self_update(check_only: bool = False, force: bool = False) -> None:
+    """skill 自更新：下载 zip -> 解压校验 -> 备份 -> 覆盖安装 -> 安装依赖，失败时自动还原"""
+    current = get_current_version()
+    print(f"[版本] 当前版本: {current}")
+
+    print("[更新] 正在获取最新版本信息...")
+    try:
+        latest = fetch_latest_info(timeout=10)
+    except Exception as e:
+        _print_update_failed(f"获取最新版本信息失败: {e}")
+        sys.exit(1)
+    print(f"[版本] 最新版本: {latest['version']}")
+
+    if compare_versions(latest["version"], current) <= 0 and not force:
+        print("\n[ALREADY_LATEST]")
+        print("当前已是最新版本，无需更新。")
+        return
+
+    if check_only:
+        print("\n[UPDATE_AVAILABLE]")
+        print(f"CURRENT_VERSION={current}")
+        print(f"LATEST_VERSION={latest['version']}")
+        if latest.get("notes"):
+            print(f"RELEASE_NOTES={' '.join(str(latest['notes']).splitlines())}")
+        print("UPDATE_COMMAND=python uupt_delivery.py self-update")
+        return
+
+    tmp_root = Path(tempfile.mkdtemp(prefix="uupt-skill-update-"))
+
+    try:
+        # 下载安装包
+        print(f"[更新] 正在下载新版本: {latest['zipUrl']}")
+        zip_file = tmp_root / "skill.zip"
+        response = requests.get(latest["zipUrl"], timeout=120)
+        response.raise_for_status()
+        with open(zip_file, "wb") as f:
+            f.write(response.content)
+
+        # 解压
+        print("[更新] 正在解压...")
+        extract_dir = tmp_root / "extracted"
+        with zipfile.ZipFile(zip_file) as zf:
+            zf.extractall(extract_dir)
+
+        # 定位 skill 根目录（兼容 zip 内多包一层目录的情况）
+        new_root = extract_dir
+        if not (new_root / "SKILL.md").exists():
+            sub_dirs = [p for p in new_root.iterdir() if p.is_dir()]
+            if len(sub_dirs) == 1 and (sub_dirs[0] / "SKILL.md").exists():
+                new_root = sub_dirs[0]
+            else:
+                raise RuntimeError("安装包结构异常: 未找到 SKILL.md")
+
+        # 校验新版本号
+        try:
+            with open(new_root / "package.json", "r", encoding="utf-8") as f:
+                new_version = json.load(f)["version"]
+        except Exception:
+            raise RuntimeError("安装包结构异常: 无法读取 package.json 版本号")
+
+        # 备份当前版本（排除 node_modules）
+        backup_dir = CONFIG_DIR / "backup" / current
+        print(f"[更新] 正在备份当前版本到: {backup_dir}")
+        shutil.rmtree(backup_dir, ignore_errors=True)
+        _copy_dir(SKILL_DIR, backup_dir, ["node_modules"])
+
+        # 覆盖安装，失败时从备份还原
+        print("[更新] 正在覆盖安装新版本...")
+        try:
+            _copy_dir(new_root, SKILL_DIR, ["node_modules"])
+        except Exception as e:
+            print("[错误] 覆盖文件失败，正在从备份还原...")
+            _copy_dir(backup_dir, SKILL_DIR, [])
+            raise RuntimeError(f"覆盖文件失败（已还原旧版本）: {e}")
+
+        # 更新 Node 依赖（npm 不存在或失败时不影响 Python 版使用）
+        deps_ok = True
+        if shutil.which("npm"):
+            print("[更新] 正在安装依赖 (npm install)...")
+            result = subprocess.run(
+                "npm install --no-audit --no-fund",
+                shell=True, cwd=str(SKILL_DIR), timeout=300,
+            )
+            deps_ok = result.returncode == 0
+        else:
+            deps_ok = False
+
+        # 刷新更新检测缓存，避免更新后仍提示旧信息
+        now = int(time.time() * 1000)
+        cache = read_update_cache()
+        cache.update({
+            "lastCheck": now,
+            "lastNotified": now,
+            "latestVersion": latest["version"],
+            "zipUrl": latest["zipUrl"],
+            "notes": latest["notes"],
+        })
+        write_update_cache(cache)
+
+        print("\n[UPDATE_SUCCESS]")
+        print(f"VERSION={new_version}")
+        print(f"[成功] skill 已更新到 {new_version}，用户配置不受影响，无需重新注册。")
+
+        if not deps_ok:
+            print("\n[UPDATE_DEPS_FAILED]")
+            print(f"[警告] 代码已更新成功，但 Node 依赖未安装/安装失败。如需使用 Node 版脚本，请在 skill 目录手动执行 npm install: {SKILL_DIR}")
+    except Exception as e:
+        _print_update_failed(str(e))
+        sys.exit(1)
+    finally:
+        shutil.rmtree(tmp_root, ignore_errors=True)
+
+
 # ============ 命令行入口 ============
 
 def print_usage():
@@ -545,12 +790,13 @@ UU跑腿同城配送服务 (Python 版本)
   python uupt_delivery.py <命令> [参数]
 
 命令:
-  register  手机号注册/获取授权
-  price     订单询价（支持跑腿配送和帮忙服务）
-  create    创建订单
-  detail    查询订单详情
-  cancel    取消订单
-  track     跑男实时追踪
+  register     手机号注册/获取授权
+  price        订单询价（支持跑腿配送和帮忙服务）
+  create       创建订单
+  detail       查询订单详情
+  cancel       取消订单
+  track        跑男实时追踪
+  self-update  检查并更新 skill 到最新版本（--check 仅检查不更新）
 
 示例:
   python uupt_delivery.py register --mobile="13800138000"
@@ -697,11 +943,22 @@ def main():
             result = driver_track(args.order_code)
             format_track_result(result)
             
+        elif command == "self-update":
+            parser.add_argument("--check", action="store_true", help="仅检查是否有新版本，不执行更新")
+            parser.add_argument("--force", action="store_true", help="即使已是最新版本也强制重装")
+            args = parser.parse_args(sys.argv[2:])
+            
+            self_update(check_only=args.check, force=args.force)
+            return
+            
         else:
             print(f"[错误] 未知命令: {command}")
-            print("   支持的命令: register, price, create, detail, cancel, track")
+            print("   支持的命令: register, price, create, detail, cancel, track, self-update")
             print("   使用 -h 查看帮助")
             sys.exit(1)
+        
+        # 主功能完成后进行更新检测（带 24h 节流，失败静默，不影响主功能）
+        maybe_notify_update()
             
     except ValueError as e:
         print(f"[错误] 参数错误: {e}")

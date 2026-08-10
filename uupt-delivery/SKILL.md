@@ -399,31 +399,54 @@ skill 在业务功能执行完成后会自动检测新版本（每 24 小时最�
 CURRENT_VERSION=1.0.8
 LATEST_VERSION=1.1.0
 RELEASE_NOTES=本次更新内容简述
+AUTO_UPDATE=false
 UPDATE_COMMAND=node scripts/self-update.js
 ```
 
 ### 处理规则
 
-1. **先完成用户当前的任务**（询价、下单等主流程不受更新提示影响，正常输出结果）
-2. 主任务完成后，附带告知用户：「skill 有新版本 {LATEST_VERSION}（当前 {CURRENT_VERSION}），更新内容：{RELEASE_NOTES}，是否更新？」
-3. **用户明确同意后**才执行更新，**严禁未经用户确认自动更新**：
+**第一原则：先完成用户当前的任务**（询价、下单等主流程不受更新提示影响，正常输出结果），更新相关内容只放在回复的结尾。
 
-```bash
-node scripts/self-update.js
+然后根据 `AUTO_UPDATE` 字段分两种模式处理：
+
+**模式一：`AUTO_UPDATE=true`（用户已开启自动更新）**
+
+主任务完成后直接执行 `UPDATE_COMMAND`，无需询问，并在回复结尾用一句话告知：「已自动更新 skill 到 {LATEST_VERSION}」。
+
+**模式二：`AUTO_UPDATE=false`（默认，需征求用户同意）**
+
+主任务完成后，在回复结尾用如下话术提示（RELEASE_NOTES 原文转述，让用户看到更新收益）：
+
+```
+💡 skill 有新版本 {LATEST_VERSION}：{RELEASE_NOTES}
+回复「更新」即可升级（约 10 秒，不影响已注册账号）；回复「以后自动更新」则今后发现新版本自动升级、不再询问。
 ```
 
-（Python 环境：`python uupt_delivery.py self-update`）
+根据用户回复执行：
 
-4. 根据更新脚本的输出标记处理结果：
+| 用户回复 | 执行命令 |
+|---------|---------|
+| 同意更新（"更新"、"好"等） | `node scripts/self-update.js` |
+| 以后自动更新 | `node scripts/self-update.js --enable-auto-update`（保存偏好并立即更新） |
+| 关闭自动更新 | `node scripts/self-update.js --disable-auto-update` |
+| 拒绝或未回应 | 不执行任何操作，不再追问（24 小时内不会重复提醒） |
+
+（Python 环境把命令换为 `python uupt_delivery.py self-update`，参数相同。）
+
+**严禁在 `AUTO_UPDATE=false` 时未经用户确认执行更新。**
+
+### 更新结果处理
 
 | 标记 | 含义 | Agent 处理 |
 |------|------|-----------|
 | `[UPDATE_SUCCESS]` | 更新成功 | 告知用户已更新到 `VERSION=` 的版本 |
+| `[AUTO_UPDATE_ENABLED]` | 已开启自动更新 | 告知用户之后新版本将自动升级 |
+| `[AUTO_UPDATE_DISABLED]` | 已关闭自动更新 | 告知用户之后会先询问再更新 |
 | `[UPDATE_DEPS_FAILED]` | 代码已更新但依赖安装失败 | 在 skill 目录执行 `npm install` 后告知用户 |
 | `[UPDATE_FAILED]` | 更新失败（已自动还原旧版本） | 告知用户失败原因 `REASON=`，可引导手动下载 https://otherfiles.uupt.com/skills/uupt-delivery.zip 重新安装 |
 | `[ALREADY_LATEST]` | 已是最新版本 | 告知用户无需更新 |
 
-5. 更新不影响用户配置（`~/.uupt-delivery/`），**无需重新注册**；旧版本自动备份到 `~/.uupt-delivery/backup/`
+更新不影响用户配置（`~/.uupt-delivery/`），**无需重新注册**；旧版本自动备份到 `~/.uupt-delivery/backup/`。
 
 ### 手动检查更新
 
@@ -442,7 +465,7 @@ node scripts/self-update.js --check
 | 文件 | 内容 | 说明 |
 |------|------|------|
 | `defaults.json`（skill 目录） | appId、appSecret、apiUrl | 内置凭证，**请勿修改** |
-| `~/.uupt-delivery/config.json` | openId（或完整凭证） | 注册后自动生成或手动创建，保存在用户主目录，不受 skill 更新影响 |
+| `~/.uupt-delivery/config.json` | openId、autoUpdate（或完整凭证） | 注册后自动生成或手动创建，保存在用户主目录，不受 skill 更新影响 |
 
 ### 环境变量
 
@@ -515,7 +538,7 @@ detail = order_detail(order_code=order['body']['orderCode'])
 - **帮帮订单**：必须传 `--note` 参数，fromAddress = toAddress；务必先确认服务地点与帮帮内容再下单。`note` 建议包含：事项类型（如陪诊/搬抬/保洁）、具体动作、时长或人数、特殊要求
 - **跑腿配送**：必须有不同的起止地址；帮买场景建议用 `--note` 写清商品与规格；鲜花/蛋糕等易碎品可在 note 注明轻拿轻放、保温防震等要求
 - **配置文件**：`defaults.json` 为内置凭证，请勿修改或删除
-- **版本更新**：输出 `[UPDATE_AVAILABLE]` 时先完成当前任务，再询问用户；用户同意后才执行 `node scripts/self-update.js`，严禁自动静默更新
+- **版本更新**：输出 `[UPDATE_AVAILABLE]` 时先完成当前任务再处理；`AUTO_UPDATE=true` 直接更新并告知，`AUTO_UPDATE=false` 必须按场景六话术征得用户同意后才执行更新
 
 ## 相关链接
 

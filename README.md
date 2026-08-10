@@ -61,6 +61,16 @@ node scripts/self-update.js
 # 或 Python: python uupt_delivery.py self-update
 ```
 
+如果不想每次被询问，可以开启自动更新（发现新版本后自动升级、不再询问，对 AI 助手说"以后自动更新"即可）：
+
+```bash
+# 开启自动更新
+node scripts/self-update.js --enable-auto-update
+
+# 关闭自动更新
+node scripts/self-update.js --disable-auto-update
+```
+
 更新说明：
 
 - 用户配置（`~/.uupt-delivery/config.json`）保存在用户主目录，更新后**无需重新注册**

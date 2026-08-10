@@ -638,13 +638,18 @@ def maybe_notify_update() -> None:
         if has_newer and not notified_recently:
             cache["lastNotified"] = now
             write_update_cache(cache)
+            auto_update = read_config().get("autoUpdate") is True
             print("\n[UPDATE_AVAILABLE]")
             print(f"CURRENT_VERSION={current}")
             print(f"LATEST_VERSION={cache['latestVersion']}")
             if cache.get("notes"):
                 print(f"RELEASE_NOTES={' '.join(str(cache['notes']).splitlines())}")
+            print(f"AUTO_UPDATE={'true' if auto_update else 'false'}")
             print("UPDATE_COMMAND=python uupt_delivery.py self-update")
-            print("提示: skill 有新版本。请先完成用户当前任务，再询问用户是否更新（未经用户同意不要执行更新）。")
+            if auto_update:
+                print("提示: 用户已开启自动更新。请先完成用户当前任务，然后直接执行 UPDATE_COMMAND 完成升级，并在回复结尾告知用户已更新到的版本。")
+            else:
+                print("提示: skill 有新版本。请先完成用户当前任务，再按 SKILL.md 场景六的话术模板询问用户是否更新（未经用户同意不要执行更新）。")
     except Exception:
         pass
 
@@ -665,8 +670,20 @@ def _print_update_failed(reason: str) -> None:
     print(f"   解压覆盖到 skill 目录 ({SKILL_DIR}) 后执行 npm install 即可。")
 
 
-def self_update(check_only: bool = False, force: bool = False) -> None:
+def self_update(check_only: bool = False, force: bool = False,
+                enable_auto: bool = False, disable_auto: bool = False) -> None:
     """skill 自更新：下载 zip -> 解压校验 -> 备份 -> 覆盖安装 -> 安装依赖，失败时自动还原"""
+    if disable_auto:
+        save_config({"autoUpdate": False})
+        print("\n[AUTO_UPDATE_DISABLED]")
+        print("已关闭自动更新，之后发现新版本会先询问用户。")
+        return
+
+    if enable_auto:
+        save_config({"autoUpdate": True})
+        print("\n[AUTO_UPDATE_ENABLED]")
+        print("已开启自动更新，之后发现新版本将自动升级、不再询问。")
+
     current = get_current_version()
     print(f"[版本] 当前版本: {current}")
 
@@ -946,9 +963,12 @@ def main():
         elif command == "self-update":
             parser.add_argument("--check", action="store_true", help="仅检查是否有新版本，不执行更新")
             parser.add_argument("--force", action="store_true", help="即使已是最新版本也强制重装")
+            parser.add_argument("--enable-auto-update", action="store_true", help="开启自动更新（保存偏好后继续执行更新）")
+            parser.add_argument("--disable-auto-update", action="store_true", help="关闭自动更新（仅保存偏好，不执行更新）")
             args = parser.parse_args(sys.argv[2:])
             
-            self_update(check_only=args.check, force=args.force)
+            self_update(check_only=args.check, force=args.force,
+                        enable_auto=args.enable_auto_update, disable_auto=args.disable_auto_update)
             return
             
         else:

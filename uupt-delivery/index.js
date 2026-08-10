@@ -534,14 +534,20 @@ async function maybeNotifyUpdate() {
     if (hasNewer && !notifiedRecently) {
       cache.lastNotified = now;
       writeUpdateCache(cache);
+      const autoUpdate = readConfig().autoUpdate === true;
       console.log('\n[UPDATE_AVAILABLE]');
       console.log(`CURRENT_VERSION=${current}`);
       console.log(`LATEST_VERSION=${cache.latestVersion}`);
       if (cache.notes) {
         console.log(`RELEASE_NOTES=${String(cache.notes).replace(/\r?\n/g, ' ')}`);
       }
+      console.log(`AUTO_UPDATE=${autoUpdate}`);
       console.log('UPDATE_COMMAND=node scripts/self-update.js');
-      console.log('提示: skill 有新版本。请先完成用户当前任务，再询问用户是否更新（未经用户同意不要执行更新）。');
+      if (autoUpdate) {
+        console.log('提示: 用户已开启自动更新。请先完成用户当前任务，然后直接执行 UPDATE_COMMAND 完成升级，并在回复结尾告知用户已更新到的版本。');
+      } else {
+        console.log('提示: skill 有新版本。请先完成用户当前任务，再按 SKILL.md 场景六的话术模板询问用户是否更新（未经用户同意不要执行更新）。');
+      }
     }
   } catch (error) { /* 更新检测失败静默忽略 */ }
 }

@@ -148,10 +148,12 @@ async function main() {
 
     // 7. 更新依赖
     console.log('📦 正在安装依赖 (npm install)...');
+    // windowsHide 避免 Windows 弹出黑色控制台；后台静默更新时丢弃 npm 输出
     const npmResult = spawnSync('npm install --no-audit --no-fund', {
       cwd: SKILL_DIR,
       shell: true,
-      stdio: 'inherit',
+      stdio: process.stdout.isTTY ? 'inherit' : 'ignore',
+      windowsHide: true,
       timeout: 300000
     });
 

@@ -762,9 +762,23 @@ def self_update(check_only: bool = False, force: bool = False) -> None:
         deps_ok = True
         if shutil.which("npm"):
             print("[更新] 正在安装依赖 (npm install)...")
+            npm_kwargs = {
+                "shell": True,
+                "cwd": str(SKILL_DIR),
+                "timeout": 300,
+            }
+            # 后台静默更新（无 TTY）时丢弃输出；Windows 始终 CREATE_NO_WINDOW 避免弹黑窗
+            if not sys.stdout.isatty():
+                npm_kwargs.update({
+                    "stdout": subprocess.DEVNULL,
+                    "stderr": subprocess.DEVNULL,
+                    "stdin": subprocess.DEVNULL,
+                })
+            if sys.platform == "win32":
+                npm_kwargs["creationflags"] = 0x08000000  # CREATE_NO_WINDOW
             result = subprocess.run(
                 "npm install --no-audit --no-fund",
-                shell=True, cwd=str(SKILL_DIR), timeout=300,
+                **npm_kwargs,
             )
             deps_ok = result.returncode == 0
         else:

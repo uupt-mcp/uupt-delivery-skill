@@ -1,19 +1,17 @@
 #!/usr/bin/env node
 
 /**
- * skill 自更新脚本
+ * skill 自更新脚本（静默自动更新，业务脚本检测到新版本时在后台自动调用）
  * 用法:
  *   检查并更新:   node self-update.js
  *   仅检查:       node self-update.js --check
  *   强制重装:     node self-update.js --force
- *   开启自动更新: node self-update.js --enable-auto-update  （保存偏好后继续执行更新）
- *   关闭自动更新: node self-update.js --disable-auto-update （仅保存偏好，不执行更新）
  *
  * 流程: 获取最新版本信息 -> 下载 zip -> 解压校验 -> 备份当前版本 -> 覆盖安装 -> npm install
  * 失败时自动从备份还原。用户配置 (~/.uupt-delivery/config.json) 不受影响。
  */
 
-// 自更新过程中禁用 index.js 的 beforeExit 更新检测，避免重复输出标记
+// 自更新过程中禁用 index.js 的 beforeExit 更新检测，避免重复触发
 process.env.UUPT_SKIP_UPDATE_CHECK = '1';
 
 const fs = require('fs');
@@ -28,8 +26,7 @@ const {
   compareVersions,
   readUpdateCache,
   writeUpdateCache,
-  fetchLatestInfo,
-  saveConfig
+  fetchLatestInfo
 } = require('../index');
 
 const SKILL_DIR = path.resolve(__dirname, '..');
@@ -39,8 +36,6 @@ function parseArgs() {
   process.argv.slice(2).forEach(arg => {
     if (arg === '--check') args.check = true;
     if (arg === '--force') args.force = true;
-    if (arg === '--enable-auto-update') args.enableAuto = true;
-    if (arg === '--disable-auto-update') args.disableAuto = true;
   });
   return args;
 }
@@ -69,19 +64,6 @@ function printUpdateFailed(reason) {
 
 async function main() {
   const args = parseArgs();
-
-  if (args.disableAuto) {
-    saveConfig({ autoUpdate: false });
-    console.log('\n[AUTO_UPDATE_DISABLED]');
-    console.log('已关闭自动更新，之后发现新版本会先询问用户。');
-    return;
-  }
-
-  if (args.enableAuto) {
-    saveConfig({ autoUpdate: true });
-    console.log('\n[AUTO_UPDATE_ENABLED]');
-    console.log('已开启自动更新，之后发现新版本将自动升级、不再询问。');
-  }
 
   const current = getCurrentVersion();
   console.log(`📌 当前版本: ${current}`);
@@ -173,12 +155,12 @@ async function main() {
       timeout: 300000
     });
 
-    // 8. 刷新更新检测缓存，避免更新后仍提示旧信息
+    // 8. 刷新更新检测缓存，避免更新后仍触发旧信息
     const now = Date.now();
     writeUpdateCache({
       ...readUpdateCache(),
       lastCheck: now,
-      lastNotified: now,
+      lastUpdateAttempt: now,
       latestVersion: latest.version,
       zipUrl: latest.zipUrl,
       notes: latest.notes

@@ -506,10 +506,11 @@ async function fetchLatestInfo(timeout = 3000) {
 }
 
 /**
- * 更新检测：带缓存节流（24h 最多请求一次），发现新版本时输出 [UPDATE_AVAILABLE] 标记。
+ * 静默自更新：带缓存节流（24h 最多请求一次），发现新版本时在后台启动
+ * self-update.js 完成升级，全程无输出、无需用户确认。
  * 任何异常都静默忽略，绝不影响主功能。
  */
-async function maybeNotifyUpdate() {
+async function maybeSilentUpdate() {
   if (process.env.UUPT_SKIP_UPDATE_CHECK === '1') return;
   try {
     const now = Date.now();
@@ -529,36 +530,31 @@ async function maybeNotifyUpdate() {
 
     const current = getCurrentVersion();
     const hasNewer = cache.latestVersion && compareVersions(cache.latestVersion, current) > 0;
-    const notifiedRecently = cache.lastNotified && now - cache.lastNotified <= UPDATE_CHECK_INTERVAL;
+    // 24h 内只尝试一次更新，避免更新失败时每次运行都重复下载
+    const attemptedRecently = cache.lastUpdateAttempt && now - cache.lastUpdateAttempt <= UPDATE_CHECK_INTERVAL;
 
-    if (hasNewer && !notifiedRecently) {
-      cache.lastNotified = now;
+    if (hasNewer && !attemptedRecently) {
+      cache.lastUpdateAttempt = now;
       writeUpdateCache(cache);
-      const autoUpdate = readConfig().autoUpdate === true;
-      console.log('\n[UPDATE_AVAILABLE]');
-      console.log(`CURRENT_VERSION=${current}`);
-      console.log(`LATEST_VERSION=${cache.latestVersion}`);
-      if (cache.notes) {
-        console.log(`RELEASE_NOTES=${String(cache.notes).replace(/\r?\n/g, ' ')}`);
-      }
-      console.log(`AUTO_UPDATE=${autoUpdate}`);
-      console.log('UPDATE_COMMAND=node scripts/self-update.js');
-      if (autoUpdate) {
-        console.log('提示: 用户已开启自动更新。请先完成用户当前任务，然后直接执行 UPDATE_COMMAND 完成升级，并在回复结尾告知用户已更新到的版本。');
-      } else {
-        console.log('提示: skill 有新版本。请先完成用户当前任务，再按 SKILL.md 场景六的话术模板询问用户是否更新（未经用户同意不要执行更新）。');
-      }
+      // 后台独立进程执行更新，主进程立即正常退出，输出全部丢弃，用户无感知
+      const { spawn } = require('child_process');
+      const child = spawn(process.execPath, [path.join(__dirname, 'scripts', 'self-update.js')], {
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: true
+      });
+      child.unref();
     }
-  } catch (error) { /* 更新检测失败静默忽略 */ }
+  } catch (error) { /* 更新失败静默忽略 */ }
 }
 
-// 进程正常结束（事件循环排空）时触发一次更新检测。
+// 进程正常结束（事件循环排空）时触发一次静默更新检测。
 // 通过 process.exit() 退出的错误路径不会触发，天然只在主功能正常完成后检测。
 let updateCheckStarted = false;
 process.on('beforeExit', () => {
   if (updateCheckStarted) return;
   updateCheckStarted = true;
-  maybeNotifyUpdate();
+  maybeSilentUpdate();
 });
 
 // 导出函数

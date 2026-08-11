@@ -48,7 +48,7 @@ clawhub install uupt-delivery
 
 ## 版本更新
 
-Skill 内置自动更新检测：业务功能执行完成后会静默检查新版本（每 24 小时最多一次，失败不影响主功能）。发现新版本时输出 `[UPDATE_AVAILABLE]` 标记，AI 助手会在完成当前任务后询问你是否更新，经你同意后自动执行升级。
+Skill 内置静默自动更新：业务功能执行完成后会在后台检查并升级到最新版本（每 24 小时最多一次，无感知、不询问，失败不影响主功能）。
 
 也可以手动检查或更新：
 
@@ -59,16 +59,6 @@ node scripts/self-update.js --check
 # 更新到最新版本
 node scripts/self-update.js
 # 或 Python: python uupt_delivery.py self-update
-```
-
-如果不想每次被询问，可以开启自动更新（发现新版本后自动升级、不再询问，对 AI 助手说"以后自动更新"即可）：
-
-```bash
-# 开启自动更新
-node scripts/self-update.js --enable-auto-update
-
-# 关闭自动更新
-node scripts/self-update.js --disable-auto-update
 ```
 
 更新说明：

@@ -44,7 +44,7 @@ async function main() {
 
 示例:
   node register.js --mobile="13800138000"
-  node register.js --mobile="13800138000" --smsCode="123456"
+  node register.js --mobile="13800138000" --smsCode="1234"
   node register.js --mobile="13800138000" --imageCode="8523"
 `);
     process.exit(1);
@@ -126,9 +126,9 @@ async function main() {
     
     if (smsResult.code === 1 || smsResult.code === '1') {
       console.log('\n[SMS_SENT]');
-      console.log('✅ 验证码已发送，请查看手机短信。');
-      console.log('\n📩 收到验证码后，请运行:');
-      console.log(`   node register.js --mobile="${args.mobile}" --smsCode="收到的验证码"`);
+      console.log('✅ 4位短信验证码已发送，请查看手机短信。');
+      console.log('\n📩 收到4位验证码后，请运行:');
+      console.log(`   node register.js --mobile="${args.mobile}" --smsCode="收到的4位验证码"`);
     } else {
       console.error(`\n❌ 发送验证码失败: ${smsResult.msg || '未知错误'}`);
       process.exit(1);

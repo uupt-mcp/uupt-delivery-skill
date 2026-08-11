@@ -146,8 +146,8 @@ node scripts/register.js --mobile="13800138000"
 # 或 Python: python uupt_delivery.py register --mobile="13800138000"
 
 # Step 2: 输入验证码完成授权
-node scripts/register.js --mobile="13800138000" --smsCode="123456"
-# 或 Python: python uupt_delivery.py register --mobile="13800138000" --sms-code="123456"
+node scripts/register.js --mobile="13800138000" --smsCode="1234"
+# 或 Python: python uupt_delivery.py register --mobile="13800138000" --sms-code="1234"
 ```
 
 ### 使用示例

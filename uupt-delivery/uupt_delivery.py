@@ -820,7 +820,7 @@ UU跑腿同城配送服务 (Python 版本)
 
 示例:
   python uupt_delivery.py register --mobile="13800138000"
-  python uupt_delivery.py register --mobile="13800138000" --sms-code="123456"
+  python uupt_delivery.py register --mobile="13800138000" --sms-code="1234"
   # 跑腿配送询价
   python uupt_delivery.py price --from-address="郑州市金水区农业路" --to-address="郑州市二七区德化街"
   # 帮帮服务询价
@@ -912,9 +912,9 @@ def main():
                 
                 if str(sms_result.get("code", "")) == "1":
                     print("\n[SMS_SENT]")
-                    print("[成功] 验证码已发送，请查看手机短信。")
-                    print("\n[提示] 收到验证码后，请运行:")
-                    print(f'   python uupt_delivery.py register --mobile="{args.mobile}" --sms-code="收到的验证码"')
+                    print("[成功] 4位短信验证码已发送，请查看手机短信。")
+                    print("\n[提示] 收到4位验证码后，请运行:")
+                    print(f'   python uupt_delivery.py register --mobile="{args.mobile}" --sms-code="收到的4位验证码"')
                 else:
                     print(f"\n[错误] 发送验证码失败: {sms_result.get('msg', '未知错误')}")
                     sys.exit(1)

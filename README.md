@@ -1,6 +1,6 @@
 # UU跑腿同城配送服务 Skill
 
-[![Version](https://img.shields.io/badge/version-1.0.8-blue.svg)](./uupt-delivery/SKILL.md)
+[![Version](https://img.shields.io/badge/version-1.0.9-blue.svg)](./uupt-delivery/SKILL.md)
 
 Skill 让 AI 助手学会新技能。通过安装本 Skill，AI 助手可以获得同城即时配送和现场帮帮服务的专业能力，在对话中自动识别用户的需求并调用对应的接口来完成任务。
 
@@ -90,11 +90,7 @@ node scripts/self-update.js
 
 ## 首次使用
 
-本 Skill 支持两种认证方式：
-
-### 方式一：快速体验模式（推荐）
-
-**无需手动配置任何凭证。** 首次运行任何功能时会自动检测是否需要注册，如果未注册会输出 `[REGISTRATION_REQUIRED]` 提示，AI 助手会自动引导你通过手机号短信验证完成注册。
+首次使用通过手机号短信验证自动完成注册，**无需手动配置任何凭证**。首次运行任何功能时会自动检测是否需要注册，如果未注册会输出 `[REGISTRATION_REQUIRED]` 提示，AI 助手会自动引导你完成注册。
 
 注册完成后 openId 自动保存到本地配置文件，后续使用无需重复操作。
 
@@ -104,27 +100,6 @@ node scripts/self-update.js
 3. 如遇 `[IMAGE_CAPTCHA_REQUIRED]`，需识别图片验证码后重试
 4. 输入短信验证码完成授权
 5. 注册成功后自动继续执行原功能
-
-### 方式二：开发者模式
-
-如果你已拥有 UU跑腿开放平台的凭证（appId、appSecret、openId），可通过以下方式配置：
-
-**环境变量方式：**
-```bash
-export UUPT_APP_ID=你的appId
-export UUPT_APP_SECRET=你的appSecret
-export UUPT_OPEN_ID=你的openId
-```
-
-**配置文件方式：**
-创建 `~/.uupt-delivery/config.json` 文件：
-```json
-{
-  "appId": "你的appId",
-  "appSecret": "你的appSecret",
-  "openId": "你的openId"
-}
-```
 
 ## 快速开始
 
@@ -185,7 +160,7 @@ node scripts/driver-track.js --orderCode="UU123456789"
 | 配置文件 | 内容 | 说明 |
 |---------|------|------|
 | `defaults.json`（skill 目录） | appId、appSecret、apiUrl | 内置应用凭证，随 Skill 分发，**请勿修改** |
-| `~/.uupt-delivery/config.json` | openId（或完整凭证） | 用户级配置，注册成功后自动生成，保存在用户主目录，不受 Skill 更新/重装影响 |
+| `~/.uupt-delivery/config.json` | openId | 用户级配置，手机号注册成功后自动生成，保存在用户主目录，不受 Skill 更新/重装影响 |
 
 配置优先级（从高到低）：环境变量 > config.json > defaults.json
 
@@ -193,9 +168,7 @@ node scripts/driver-track.js --orderCode="UU123456789"
 
 | 变量名 | 说明 | 必填 |
 |--------|------|------|
-| `UUPT_APP_ID` | 应用 ID | 开发者模式必填 |
-| `UUPT_APP_SECRET` | 应用密钥 | 开发者模式必填 |
-| `UUPT_OPEN_ID` | 用户唯一标识 | 是 |
+| `UUPT_OPEN_ID` | 用户唯一标识 | 否，由手机号注册自动获取 |
 | `UUPT_API_URL` | API 地址 | 否，默认生产环境 |
 | `UUPT_SKIP_UPDATE_CHECK` | 设为 `1` 时禁用自动更新检测 | 否 |
 | `UUPT_UPDATE_LATEST_URL` | 版本信息文件地址（用于测试环境） | 否，默认官方地址 |

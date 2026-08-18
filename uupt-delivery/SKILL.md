@@ -2,7 +2,7 @@
 name: uupt-delivery
 description: >-
   UU跑腿同城配送服务。支持跑腿配送和帮帮服务两种订单类型，包括订单询价、发单下单、查询订单、取消订单、跑男实时追踪。当用户表达任何与"送"、"取"、"寄"、"跑腿"、"发单"、"配送"、"帮送"、"帮取"、"帮买"、"代购"、"同城急送"、"帮帮"、"帮我"、"代办"、"代取号"、"代排队"、"陪诊"、"搬东西"、"装卸"、"小时工"、"打扫卫生"、"布置场地"、"取寄快递"、"琐事代办"等配送或帮帮需求时使用此skill。
-version: 1.0.8
+version: 1.0.9
 metadata:
   openclaw:
     requires:
@@ -115,7 +115,7 @@ UU跑腿同城配送服务为用户提供便捷的同城即时配送能力和现
 
 | 场景 | 触发条件 | 所需信息 |
 |------|---------|---------|
-| 场景零：首次注册 | 执行脚本输出 `[REGISTRATION_REQUIRED]` | 手机号 / 开发者凭证 |
+| 场景零：首次注册 | 执行脚本输出 `[REGISTRATION_REQUIRED]` | 手机号 |
 | 场景一：订单询价 | 用户想知道费用 | 地址信息（配送需起止地址，帮帮只需地点） |
 | 场景二：创建订单 | 用户确认发单 | priceToken、收件人电话；（帮帮必填 note，帮买建议 note） |
 | 场景三：查询订单 | 用户想看订单状态 | 订单编号 |
@@ -126,42 +126,24 @@ UU跑腿同城配送服务为用户提供便捷的同城即时配送能力和现
 
 ## 场景零：首次注册
 
-当执行任何脚本输出 `[REGISTRATION_REQUIRED]` 时自动触发。
+当执行任何脚本输出 `[REGISTRATION_REQUIRED]` 时自动触发，通过手机号短信验证完成注册。
 
-### Step 1: 询问凭证
+### Step 1: 手机号注册
 
-```
-首次使用需要配置认证信息，请问您是否已有 UU跑腿开放平台的凭证（appId、appSecret、openId）？
-- A: 已有凭证，直接配置
-- B: 没有凭证，通过手机号注册
-```
-
-### Step 1A: 开发者模式（A）
-
-请用户提供 `appId`、`appSecret`、`openId`，写入 `~/.uupt-delivery/config.json`：
-
-```json
-{ "appId": "...", "appSecret": "...", "openId": "..." }
-```
-
-保存后告知「配置完成！」，**立即继续执行用户最初要求的功能**。
-
-### Step 2: 手机号注册（B）
-
-询问手机号，发送短信验证码：
+询问用户手机号，发送短信验证码：
 
 ```bash
 node scripts/register.js --mobile="用户手机号"
 ```
 
 处理结果：
-- `[SMS_SENT]` → 验证码已发送，进入 Step 3
+- `[SMS_SENT]` → 验证码已发送，进入 Step 2
 - `[IMAGE_CAPTCHA_REQUIRED]` → 输出包含 `IMAGE_DATA=data:image/png;base64,...`，将 base64 图片展示给用户识别数字后重试：
   ```bash
   node scripts/register.js --mobile="手机号" --imageCode="用户输入的数字"
   ```
 
-### Step 3: 输入验证码完成授权
+### Step 2: 输入验证码完成授权
 
 ```bash
 node scripts/register.js --mobile="手机号" --smsCode="用户输入的验证码"
@@ -169,7 +151,7 @@ node scripts/register.js --mobile="手机号" --smsCode="用户输入的验证�
 
 处理结果：
 - `[REGISTRATION_SUCCESS]` → 注册成功，openId 已保存，**立即继续执行用户最初的功能**
-- `[REGISTRATION_FAILED]` → 从 Step 2 重试（无需重新输入手机号），最多 3 次
+- `[REGISTRATION_FAILED]` → 从 Step 1 重试（无需重新输入手机号），最多 3 次
 - `[CONFIG_SAVE_FAILED]` → 授权已成功但脚本写配置文件失败。输出中包含 `OPEN_ID=` 和 `CONFIG_FILE=` 两个字段，**Agent 应直接用文件写入工具将 `{"openId": "<OPEN_ID>"}` 写入 CONFIG_FILE 路径**（目录不存在则先创建），然后继续执行用户最初的功能；仅当 Agent 也无法写入时，才提示用户设置环境变量 `UUPT_OPEN_ID`
 
 ---
@@ -410,14 +392,12 @@ node scripts/self-update.js --check
 | 文件 | 内容 | 说明 |
 |------|------|------|
 | `defaults.json`（skill 目录） | appId、appSecret、apiUrl | 内置凭证，**请勿修改** |
-| `~/.uupt-delivery/config.json` | openId（或完整凭证） | 注册后自动生成或手动创建，保存在用户主目录，不受 skill 更新影响 |
+| `~/.uupt-delivery/config.json` | openId | 手机号注册成功后自动生成，保存在用户主目录，不受 skill 更新影响 |
 
 ### 环境变量
 
 | 变量 | 说明 |
 |------|------|
-| `UUPT_APP_ID` | 应用 ID |
-| `UUPT_APP_SECRET` | 应用密钥 |
 | `UUPT_OPEN_ID` | 用户唯一标识 |
 | `UUPT_API_URL` | API 地址（可选，默认生产环境） |
 | `UUPT_SKIP_UPDATE_CHECK` | 设为 `1` 时禁用自动更新检测（可选） |

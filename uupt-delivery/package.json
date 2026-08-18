@@ -1,6 +1,6 @@
 {
   "name": "uupt-delivery-skill",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "UU跑腿同城配送服务，提供订单询价、发单、订单管理、跑男追踪等功能",
   "main": "index.js",
   "scripts": {

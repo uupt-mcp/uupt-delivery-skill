@@ -177,8 +177,8 @@ node scripts/driver-track.js --orderCode="UU123456789"
 
 | 环境 | URL |
 |------|-----|
-| 生产环境 | `https://api-open.uupt.com/openapi/v3/` |
-| 测试环境 | `http://api-open.test.uupt.com/openapi/v3/` |
+| 生产环境 | `https://api-open.uupt.com` |
+| 测试环境 | `http://api-open.test.uupt.com` |
 
 ## 注意事项
 

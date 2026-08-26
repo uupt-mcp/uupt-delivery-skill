@@ -42,8 +42,8 @@ CONFIG_DIR = Path.home() / ".uupt-delivery"
 CONFIG_FILE = CONFIG_DIR / "config.json"
 DEFAULTS_FILE = Path(__file__).parent / "defaults.json"
 
-# 默认 API 地址
-DEFAULT_API_URL = "https://api-open.uupt.com/openapi/v3/"
+# 默认 API 地址（接口路径在调用处写全）
+DEFAULT_API_URL = "https://api-open.uupt.com"
 
 # skill 安装目录与版本更新配置
 SKILL_DIR = Path(__file__).parent
@@ -243,7 +243,7 @@ def send_sms_code(user_mobile: str, user_ip: str, image_code: str = "") -> dict:
     }
     
     print("[注册] 正在发送短信验证码...")
-    return post_unauthorized_request(biz, "user/unauthorized/sendSmsCode")
+    return post_unauthorized_request(biz, "/openapi/v3/user/unauthorized/sendSmsCode")
 
 
 def user_auth(user_mobile: str, user_ip: str, sms_code: str) -> dict:
@@ -264,7 +264,7 @@ def user_auth(user_mobile: str, user_ip: str, sms_code: str) -> dict:
     }
     
     print("[注册] 正在进行商户授权...")
-    result = post_unauthorized_request(biz, "user/unauthorized/auth")
+    result = post_unauthorized_request(biz, "/openapi/v3/user/unauthorized/auth")
     
     if result and result.get("body") and result["body"].get("openId"):
         result["configSaved"] = save_config({"openId": result["body"]["openId"]})
@@ -314,7 +314,7 @@ def order_price(from_address: str, to_address: str, city_name: str = "郑州市"
     
     type_label = "帮帮服务" if is_help else "配送"
     print(f"[询价] 正在查询{type_label}价格...")
-    return post_request(biz, "order/orderPrice")
+    return post_request(biz, "/openapi/v3/order/orderPrice")
 
 
 def create_order(price_token: str, receiver_phone: str, channel: str = "", note: str = "") -> dict:
@@ -348,7 +348,7 @@ def create_order(price_token: str, receiver_phone: str, channel: str = "", note:
         biz["note"] = note
     
     print("[下单] 正在创建订单...")
-    return post_request(biz, "order/addOrder")
+    return post_request(biz, "/openapi/v3/order/addOrder")
 
 
 def order_detail(order_code: str) -> dict:
@@ -359,7 +359,7 @@ def order_detail(order_code: str) -> dict:
     biz = {"order_code": order_code}
     
     print("[查询] 正在查询订单详情...")
-    return post_request(biz, "order/orderDetail")
+    return post_request(biz, "/openapi/v3/order/orderDetail")
 
 
 def cancel_order(order_code: str, reason: str = "") -> dict:
@@ -373,7 +373,7 @@ def cancel_order(order_code: str, reason: str = "") -> dict:
     }
     
     print("[取消] 正在取消订单...")
-    return post_request(biz, "order/cancelOrder")
+    return post_request(biz, "/openapi/v3/order/cancelOrder")
 
 
 def driver_track(order_code: str) -> dict:
@@ -384,7 +384,7 @@ def driver_track(order_code: str) -> dict:
     biz = {"order_code": order_code}
     
     print("[追踪] 正在查询跑男信息...")
-    return post_request(biz, "order/driverTrack")
+    return post_request(biz, "/openapi/v3/order/driverTrack")
 
 
 # ============ 结果格式化 ============

@@ -406,7 +406,7 @@ node scripts/self-update.js --check
 
 | 环境 | URL |
 |------|-----|
-| 生产环境 | `https://api-open.uupt.com/openapi/v3/` |
+| 生产环境 | `https://api-open.uupt.com` |
 
 ---
 

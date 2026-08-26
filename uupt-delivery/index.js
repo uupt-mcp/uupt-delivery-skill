@@ -9,6 +9,9 @@ const CONFIG_DIR = path.join(os.homedir(), '.uupt-delivery');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 const DEFAULTS_FILE = path.join(__dirname, 'defaults.json');
 
+// API 基础地址（接口路径在调用处写全，方便后续接入其他前缀的接口）
+const DEFAULT_API_URL = 'https://api-open.uupt.com';
+
 /**
  * 读取配置文件
  */
@@ -67,7 +70,7 @@ function getConfig() {
     appId: process.env.UUPT_APP_ID || config.appId || defaults.appId || null,
     appSecret: process.env.UUPT_APP_SECRET || config.appSecret || defaults.appSecret || null,
     openId: process.env.UUPT_OPEN_ID || config.openId || defaults.openId || null,
-    apiUrl: process.env.UUPT_API_URL || config.apiUrl || defaults.apiUrl || 'https://api-open.uupt.com/openapi/v3/'
+    apiUrl: process.env.UUPT_API_URL || config.apiUrl || defaults.apiUrl || DEFAULT_API_URL
   };
 }
 
@@ -244,7 +247,7 @@ async function sendSmsCode(params) {
   };
   
   console.log('📱 正在发送短信验证码...');
-  return await postUnauthorizedRequest(biz, 'user/unauthorized/sendSmsCode');
+  return await postUnauthorizedRequest(biz, '/openapi/v3/user/unauthorized/sendSmsCode');
 }
 
 /**
@@ -276,7 +279,7 @@ async function auth(params) {
   };
   
   console.log('🔐 正在进行商户授权...');
-  const result = await postUnauthorizedRequest(biz, 'user/unauthorized/auth');
+  const result = await postUnauthorizedRequest(biz, '/openapi/v3/user/unauthorized/auth');
   
   if (result && result.body && result.body.openId) {
     result.configSaved = saveConfig({ openId: result.body.openId });
@@ -327,7 +330,7 @@ async function orderPrice(params) {
   
   const typeLabel = isHelp ? '帮帮服务' : '配送';
   console.log(`💰 正在查询${typeLabel}价格...`);
-  return await postRequest(biz, 'order/orderPrice');
+  return await postRequest(biz, '/openapi/v3/order/orderPrice');
 }
 
 /**
@@ -367,7 +370,7 @@ async function createOrder(params) {
   }
   
   console.log('📦 正在创建订单...');
-  return await postRequest(biz, 'order/addOrder');
+  return await postRequest(biz, '/openapi/v3/order/addOrder');
 }
 
 /**
@@ -387,7 +390,7 @@ async function orderDetail(params) {
   };
   
   console.log('📋 正在查询订单详情...');
-  return await postRequest(biz, 'order/orderDetail');
+  return await postRequest(biz, '/openapi/v3/order/orderDetail');
 }
 
 /**
@@ -409,7 +412,7 @@ async function cancelOrder(params) {
   };
   
   console.log('❌ 正在取消订单...');
-  return await postRequest(biz, 'order/cancelOrder');
+  return await postRequest(biz, '/openapi/v3/order/cancelOrder');
 }
 
 /**
@@ -429,7 +432,7 @@ async function driverTrack(params) {
   };
   
   console.log('🏃 正在查询跑男信息...');
-  return await postRequest(biz, 'order/driverTrack');
+  return await postRequest(biz, '/openapi/v3/order/driverTrack');
 }
 
 /**
@@ -583,7 +586,8 @@ module.exports = {
   compareVersions,
   readUpdateCache,
   writeUpdateCache,
-  fetchLatestInfo
+  fetchLatestInfo,
+  DEFAULT_API_URL
 };
 
 // 如果直接运行此文件，显示帮助信息

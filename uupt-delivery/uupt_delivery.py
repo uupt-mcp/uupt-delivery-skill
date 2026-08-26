@@ -11,6 +11,7 @@ UU跑腿同城配送服务 Agent Skill (Python 版本)
     python uupt_delivery.py detail --order-code="订单编号"
     python uupt_delivery.py cancel --order-code="订单编号" [--reason="取消原因"]
     python uupt_delivery.py track --order-code="订单编号"
+    python uupt_delivery.py coupon [--source="领取来源"]
 
 配置方式：
     1. 预制配置：defaults.json（appId、appSecret，随 Skill 分发）
@@ -47,6 +48,8 @@ DEFAULT_API_URL = "https://api-open.uupt.com"
 
 # skill 安装目录与版本更新配置
 SKILL_DIR = Path(__file__).parent
+# 淡定星期四活动太阳码图片（随 skill 分发）
+THURSDAY_QRCODE_FILE = SKILL_DIR / "assets" / "thursday-qrcode.jpg"
 UPDATE_LATEST_URL = os.environ.get("UUPT_UPDATE_LATEST_URL") or "https://otherfiles.uupt.com/skills/uupt-delivery-latest.json"
 UPDATE_DEFAULT_ZIP_URL = "https://otherfiles.uupt.com/skills/uupt-delivery.zip"
 UPDATE_CACHE_FILE = CONFIG_DIR / "update-check.json"
@@ -387,6 +390,18 @@ def driver_track(order_code: str) -> dict:
     return post_request(biz, "/openapi/v3/order/driverTrack")
 
 
+def receive_coupon_packages(source: int = 1) -> dict:
+    """领取优惠券包
+    
+    Args:
+        source: 领取来源（决定可领哪些券包）
+    """
+    biz = {"source": int(source)}
+    
+    print("[领券] 正在领取优惠券...")
+    return post_request(biz, "/openapiext/v3/aiagentcoupon/receiveCouponPackages")
+
+
 # ============ 结果格式化 ============
 
 def format_price_result(result: dict) -> None:
@@ -542,6 +557,26 @@ def format_track_result(result: dict) -> None:
             print(f"   当前位置: {data['longitude']}, {data['latitude']}")
         if data.get("distance"):
             print(f"   距离目的地: {data['distance']} 米")
+
+
+def format_coupon_result(result: dict) -> None:
+    """格式化领券结果"""
+    print("[结果] 领券结果:")
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+    
+    if result.get("body"):
+        data = result["body"]
+        coupon_list = data.get("couponList") or []
+        
+        print("\n[COUPON_RESULT]")
+        print(f"NEWLY_CLAIMED={'true' if data.get('newlyClaimed') is True else 'false'}")
+        print(f"COUPON_COUNT={len(coupon_list)}")
+        if data.get("thursdayJoinAble") is True:
+            print("THURSDAY_JOIN_ABLE=true")
+            print(f"THURSDAY_QRCODE_FILE={THURSDAY_QRCODE_FILE}")
+        print("\n[提示] Agent 请根据 SKILL.md 场景六的触发条件（newlyClaimed / couponList / thursdayJoinAble）选择对应话术模板回复用户。")
+    else:
+        print(f"\n[错误] 领券失败: {result.get('msg') or result.get('error') or '未知错误'}")
 
 
 # ============ 版本更新 ============
@@ -830,6 +865,7 @@ UU跑腿同城配送服务 (Python 版本)
   detail       查询订单详情
   cancel       取消订单
   track        跑男实时追踪
+  coupon       领取优惠券
   self-update  检查并更新 skill 到最新版本（--check 仅检查不更新）
 
 示例:
@@ -844,6 +880,7 @@ UU跑腿同城配送服务 (Python 版本)
   python uupt_delivery.py detail --order-code="UU123456789"
   python uupt_delivery.py cancel --order-code="UU123456789" --reason="用户改变主意"
   python uupt_delivery.py track --order-code="UU123456789"
+  python uupt_delivery.py coupon
 
 首次使用:
   运行任何命令时会自动检测是否需要注册。
@@ -977,6 +1014,13 @@ def main():
             result = driver_track(args.order_code)
             format_track_result(result)
             
+        elif command == "coupon":
+            parser.add_argument("--source", type=int, default=1, help="领取来源（决定可领哪些券包，默认1）")
+            args = parser.parse_args(sys.argv[2:])
+            
+            result = receive_coupon_packages(args.source)
+            format_coupon_result(result)
+            
         elif command == "self-update":
             parser.add_argument("--check", action="store_true", help="仅检查是否有新版本，不执行更新")
             parser.add_argument("--force", action="store_true", help="即使已是最新版本也强制重装")
@@ -987,7 +1031,7 @@ def main():
             
         else:
             print(f"[错误] 未知命令: {command}")
-            print("   支持的命令: register, price, create, detail, cancel, track, self-update")
+            print("   支持的命令: register, price, create, detail, cancel, track, coupon, self-update")
             print("   使用 -h 查看帮助")
             sys.exit(1)
         

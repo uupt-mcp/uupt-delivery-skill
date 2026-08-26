@@ -436,6 +436,22 @@ async function driverTrack(params) {
 }
 
 /**
+ * 领取优惠券包
+ * @param {Object} params - 领券参数
+ * @param {number} [params.source=1] - 领取来源（决定可领哪些券包）
+ */
+async function receiveCouponPackages(params = {}) {
+  const { source = 1 } = params;
+
+  const biz = {
+    source: Number(source)
+  };
+
+  console.log('🎟️ 正在领取优惠券...');
+  return await postRequest(biz, '/openapiext/v3/aiagentcoupon/receiveCouponPackages');
+}
+
+/**
  * 格式化价格（分转元）
  */
 function formatPrice(priceInFen) {
@@ -578,6 +594,7 @@ module.exports = {
   orderDetail,
   cancelOrder,
   driverTrack,
+  receiveCouponPackages,
   formatPrice,
   UPDATE_LATEST_URL,
   UPDATE_DEFAULT_ZIP_URL,
@@ -603,6 +620,7 @@ if (require.main === module) {
   node scripts/order-detail.js   - 查询订单详情
   node scripts/cancel-order.js   - 取消订单
   node scripts/driver-track.js   - 跑男实时追踪
+  node scripts/receive-coupon.js - 领取优惠券
 
 首次使用:
   运行任何命令时会自动检测是否需要注册。

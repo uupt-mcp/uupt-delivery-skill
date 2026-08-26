@@ -203,4 +203,4 @@ node scripts/receive-coupon.js
 
 - [ClawHub 应用市场](https://clawhub.ai/uupt-mcp/skills/uupt-delivery)
 - [GitHub 仓库](https://github.com/uupt-mcp/uupt-delivery-skill)
-- [UU跑腿开放平台](https://open.uupt.com/#/development/agentSkill/quickStart)
+- [UU跑腿开放平台](https://open.uupt.com/#/development/ai/agentSkill)

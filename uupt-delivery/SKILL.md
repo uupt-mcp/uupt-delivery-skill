@@ -588,5 +588,5 @@ coupon = receive_coupon_packages(source=1)
 
 ## 相关链接
 
-- [UU跑腿开放平台](https://open.uupt.com/#/development/agentSkill/quickStart)
+- [UU跑腿开放平台](https://open.uupt.com/#/development/ai/agentSkill)
 - [GitHub地址](https://github.com/uupt-mcp/uupt-delivery-skill)

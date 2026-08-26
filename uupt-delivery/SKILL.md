@@ -459,6 +459,28 @@ node scripts/receive-coupon.js
 
 > 注意：`THURSDAY_QRCODE_FILE` 需替换为脚本实际输出的绝对路径；图片必须真实发送/展示，不能只输出文本。
 
+### 完整流程示例
+
+```
+用户：帮我领个优惠券
+Agent：直接执行领券脚本 → newlyClaimed=true 且 couponList 非空 → 按场景 A 话术输出领券成功表格
+
+用户：有优惠券吗 / 有什么优惠
+Agent：识别为领券诉求 → 执行领券脚本 → 按返回值选择场景 A/B/C 话术输出
+
+用户：今天又让我领券，领过了吧
+Agent：执行领券脚本 → newlyClaimed=false → 按场景 B 话术输出今日已领的券详情
+
+用户：先领张券，然后帮我从金水区送份文件到二七广场，电话 13800138000
+Agent：先领券（按场景 A/B/C 输出）→ 再转场景一询价 → 场景二发单
+
+用户：领券（返回 thursdayJoinAble=true）
+Agent：按场景 A/B/C 输出券后，追加淡定星期四活动话术并展示 THURSDAY_QRCODE_FILE 图片
+
+用户：未注册状态下要求领券
+Agent：脚本输出 [REGISTRATION_REQUIRED] → 先走场景零手机号注册 → 注册成功后重新执行领券
+```
+
 ---
 
 ## 版本更新（静默）

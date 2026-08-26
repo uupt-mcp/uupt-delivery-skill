@@ -1,6 +1,6 @@
 # UU跑腿同城配送服务 Skill
 
-[![Version](https://img.shields.io/badge/version-1.0.9-blue.svg)](./uupt-delivery/SKILL.md)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](./uupt-delivery/SKILL.md)
 
 Skill 让 AI 助手学会新技能。通过安装本 Skill，AI 助手可以获得同城即时配送和现场帮帮服务的专业能力，在对话中自动识别用户的需求并调用对应的接口来完成任务。
 
@@ -78,6 +78,7 @@ node scripts/self-update.js
 | 查询订单 | 获取订单的当前状态和详细信息 | 用户想了解订单进度 |
 | 取消订单 | 取消未完成的订单 | 用户不想继续服务 |
 | 跑男追踪 | 实时查询跑男的位置和状态 | 用户想知道跑男在哪 |
+| 领取优惠券 | 一键领取UU跑腿优惠券（每日可领，重复领取返回当日记录），符合条件时附主题活动二维码入口 | 用户要领券或询问优惠/活动 |
 
 ## 运行环境
 
@@ -151,6 +152,10 @@ node scripts/cancel-order.js --orderCode="UU123456789" --reason="用户改变主
 
 # 跑男追踪
 node scripts/driver-track.js --orderCode="UU123456789"
+
+# === 领取优惠券 ===
+node scripts/receive-coupon.js
+# 或 Python: python uupt_delivery.py coupon
 ```
 
 ## 配置管理
@@ -192,6 +197,7 @@ node scripts/driver-track.js --orderCode="UU123456789"
 - **余额不足**：订单返回 `[PAYMENT_REQUIRED]` 时，需以附件形式发送微信支付二维码图片，同时提供在线链接作为兜底方案
 - **配置文件**：`defaults.json` 为内置凭证，请勿修改或删除
 - **帮帮订单**：帮帮订单的 fromAddress 和 toAddress 相同，必须传递 `--note` 参数描述具体帮帮内容
+- **领取优惠券**：需先完成注册；同一用户同一来源当天只能新领一次，重复领取返回当日记录（`newlyClaimed=false`）；`thursdayJoinAble=true` 时需展示 `assets/thursday-qrcode.jpg` 活动图片引导用户扫码参与
 
 ## 相关链接
 

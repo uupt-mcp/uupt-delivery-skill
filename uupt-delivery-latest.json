@@ -1,6 +1,6 @@
 {
-  "version": "1.0.9",
+  "version": "1.1.0",
   "zipUrl": "https://otherfiles.uupt.com/skills/uupt-delivery.zip",
-  "notes": "注册流程简化：移除开发者模式，仅保留手机号短信验证注册，建议升级到最新版本",
-  "publishedAt": "2026-08-18"
+  "notes": "新增领取优惠券能力，优化星期四活动太阳码图片展示，建议升级到最新版本",
+  "publishedAt": "2026-08-27"
 }

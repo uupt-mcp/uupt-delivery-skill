@@ -8,7 +8,8 @@
 const path = require('path');
 const { receiveCouponPackages } = require('../index');
 
-// 淡定星期四活动太阳码图片（随 skill 分发）
+// 淡定星期四活动太阳码图片：远程链接（优先，Markdown 可直接渲染）与本地文件（兜底，配合平台图片发送机制）
+const THURSDAY_QRCODE_URL = 'https://otherfi.uuzuan.com/middle/qrcode/weixinb/2026/08/26/6a8e516fe4b02347a1199954.jpg';
 const THURSDAY_QRCODE_FILE = path.join(__dirname, '..', 'assets', 'thursday-qrcode.jpg');
 
 // 解析命令行参数
@@ -48,6 +49,7 @@ async function main() {
       console.log(`COUPON_COUNT=${couponList.length}`);
       if (body.thursdayJoinAble === true) {
         console.log('THURSDAY_JOIN_ABLE=true');
+        console.log(`THURSDAY_QRCODE_URL=${THURSDAY_QRCODE_URL}`);
         console.log(`THURSDAY_QRCODE_FILE=${THURSDAY_QRCODE_FILE}`);
       }
       console.log('\n💡 提示: Agent 请根据 SKILL.md 场景六的触发条件（newlyClaimed / couponList / thursdayJoinAble）选择对应话术模板回复用户。');

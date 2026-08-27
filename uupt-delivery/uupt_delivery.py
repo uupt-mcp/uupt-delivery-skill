@@ -48,7 +48,8 @@ DEFAULT_API_URL = "https://api-open.uupt.com"
 
 # skill 安装目录与版本更新配置
 SKILL_DIR = Path(__file__).parent
-# 淡定星期四活动太阳码图片（随 skill 分发）
+# 淡定星期四活动太阳码图片：远程链接（优先，Markdown 可直接渲染）与本地文件（兜底，配合平台图片发送机制）
+THURSDAY_QRCODE_URL = "https://otherfi.uuzuan.com/middle/qrcode/weixinb/2026/08/26/6a8e516fe4b02347a1199954.jpg"
 THURSDAY_QRCODE_FILE = SKILL_DIR / "assets" / "thursday-qrcode.jpg"
 UPDATE_LATEST_URL = os.environ.get("UUPT_UPDATE_LATEST_URL") or "https://otherfiles.uupt.com/skills/uupt-delivery-latest.json"
 UPDATE_DEFAULT_ZIP_URL = "https://otherfiles.uupt.com/skills/uupt-delivery.zip"
@@ -573,6 +574,7 @@ def format_coupon_result(result: dict) -> None:
         print(f"COUPON_COUNT={len(coupon_list)}")
         if data.get("thursdayJoinAble") is True:
             print("THURSDAY_JOIN_ABLE=true")
+            print(f"THURSDAY_QRCODE_URL={THURSDAY_QRCODE_URL}")
             print(f"THURSDAY_QRCODE_FILE={THURSDAY_QRCODE_FILE}")
         print("\n[提示] Agent 请根据 SKILL.md 场景六的触发条件（newlyClaimed / couponList / thursdayJoinAble）选择对应话术模板回复用户。")
     else:

@@ -9,7 +9,7 @@ const path = require('path');
 const { receiveCouponPackages } = require('../index');
 
 // 淡定星期四活动太阳码图片：远程链接（优先，Markdown 可直接渲染）与本地文件（兜底，配合平台图片发送机制）
-const THURSDAY_QRCODE_URL = 'https://otherfi.uuzuan.com/middle/qrcode/weixinb/2026/08/26/6a8e516fe4b02347a1199954.jpg';
+const THURSDAY_QRCODE_URL = 'https://otherfiles.uupt.com/skills/thursday-qrcode.jpg';
 const THURSDAY_QRCODE_FILE = path.join(__dirname, '..', 'assets', 'thursday-qrcode.jpg');
 
 // 解析命令行参数

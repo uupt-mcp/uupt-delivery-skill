@@ -49,7 +49,7 @@ DEFAULT_API_URL = "https://api-open.uupt.com"
 # skill 安装目录与版本更新配置
 SKILL_DIR = Path(__file__).parent
 # 淡定星期四活动太阳码图片：远程链接（优先，Markdown 可直接渲染）与本地文件（兜底，配合平台图片发送机制）
-THURSDAY_QRCODE_URL = "https://otherfi.uuzuan.com/middle/qrcode/weixinb/2026/08/26/6a8e516fe4b02347a1199954.jpg"
+THURSDAY_QRCODE_URL = "https://otherfiles.uupt.com/skills/thursday-qrcode.jpg"
 THURSDAY_QRCODE_FILE = SKILL_DIR / "assets" / "thursday-qrcode.jpg"
 UPDATE_LATEST_URL = os.environ.get("UUPT_UPDATE_LATEST_URL") or "https://otherfiles.uupt.com/skills/uupt-delivery-latest.json"
 UPDATE_DEFAULT_ZIP_URL = "https://otherfiles.uupt.com/skills/uupt-delivery.zip"
